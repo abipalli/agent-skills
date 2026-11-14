@@ -1,6 +1,6 @@
 ---
 name: submit-review
-description: "Submit code review findings as inline PR comments via the GitHub CLI. Takes review findings (from deep-code-review or manual analysis) and posts them as a single GitHub PR review with inline comments. Use when the user asks to \"submit review\", \"post comments\", \"submit PR feedback\", \"post review\", or \"comment on the PR\"."
+description: "Submit code review findings as inline PR comments via the GitHub CLI. Takes review findings (from deep-code-review or manual analysis) and posts them as a single GitHub PR review with inline comments, after the user approves the exact draft. Use when the user asks to \"submit review\", \"post comments\", \"submit PR feedback\", \"post review\", or \"comment on the PR\"."
 ---
 
 # Submit Review
@@ -99,9 +99,25 @@ Verify each file:line actually appears in the diff. GitHub only accepts inline r
 
 When anchoring to a nearby diff line, write the comment so the target is clear (for example, "This new call still relies on `foo` returning non-null..."). If there is no honest inline anchor in the diff, skip that comment and report it after submission rather than posting a top-level review note.
 
-## Step 5: Submit the Review
+## Step 5: Get Approval
 
-Use the `gh` CLI to submit a single review with all comments. Determine the appropriate review action from the review verdict, not just whether comments exist:
+A posted review is public and notifies the PR author, so nothing is posted without the user's explicit go-ahead. First decide the review action (see the table in Step 6), then show the user the exact draft:
+
+- the PR (number and title) and the action, `APPROVE` or `COMMENT`;
+- every comment as `path:line`, followed by its full body;
+- any finding you skipped because it had no honest inline anchor, with the reason.
+
+Then ask with a structured question tool (such as Claude Code's `AskUserQuestion`) when one is available, or in plain text otherwise. Offer these options:
+
+- **Post**: submit exactly as shown.
+- **Edit**: the user names changes. Apply them, show the revised draft, and ask again.
+- **Cancel**: post nothing.
+
+Only an explicit **Post** goes ahead. Silence, an ambiguous reply, or a running pipeline does not count. If the user asked to approve the PR, that is still a request to draft the review, not approval to post it.
+
+## Step 6: Submit the Review
+
+Use the `gh` CLI to submit the approved draft as a single review. Determine the appropriate review action from the review verdict, not just whether comments exist:
 
 | Verdict | Action |
 |---------|--------|
@@ -143,7 +159,7 @@ The `event` field must be either `APPROVE` or `COMMENT`. Never use `REQUEST_CHAN
 
 **The `body` field must be an empty string `""`** — do not include a top-level review summary or an extra approval message. All feedback goes in inline comments only.
 
-## Step 6: Confirm Submission
+## Step 7: Confirm Submission
 
 After the API call succeeds, output:
 - Link to the PR
@@ -155,7 +171,7 @@ If any comments failed to post (e.g., line not in diff), report which ones and w
 ## Important Guidelines
 
 - Never submit an empty review unless the user explicitly asked you to approve the PR — if there are no findings, tell the user instead of posting
-- Submit immediately without asking for confirmation — the review pipeline is automated
+- Never post without the user approving the exact draft (Step 5); post what they approved, unchanged
 - Prefer fewer, higher-quality comments over many trivial ones
 - Use GitHub suggestion blocks whenever a concrete code fix is possible
 - Comments on deleted lines use `side=LEFT` and the old file's line number
