@@ -1,0 +1,94 @@
+diff --git a/src/router.rs b/src/router.rs
+index 52a70f0..f0c4931 100644
+--- a/src/router.rs
++++ b/src/router.rs
+@@ -18,6 +18,79 @@ impl Router {
+         self.backends.get(name).ok_or(RouteError::UnknownBackend)
+     }
++
++    #[allow(clippy::too_many_lines)]
++    pub fn route_request(
++        &self,
++        mode: &str,
++        dry_run: bool,
++        audit: bool,
++        request: &Request,
++    ) -> Result<Route, RouteError> {
++        let mut annotations = Vec::new();
++
++        if mode == "fast" {
++            if request.account_id.is_empty() {
++                return Err(RouteError::MissingAccount);
++            }
++            if request.payload.len() > MAX_PAYLOAD_SIZE {
++                return Err(RouteError::PayloadTooLarge);
++            }
++
++            if audit {
++                annotations.push("audit");
++            }
++
++            if dry_run {
++                Ok(Route::Preview {
++                    backend: self.backend("primary")?,
++                    annotations,
++                })
++            } else {
++                Ok(Route::Execute {
++                    backend: self.backend("primary")?,
++                    annotations,
++                })
++            }
++        } else if mode == "safe" {
++            if request.account_id.is_empty() {
++                return Err(RouteError::MissingAccount);
++            }
++            if request.payload.len() > MAX_PAYLOAD_SIZE {
++                return Err(RouteError::PayloadTooLarge);
++            }
++
++            if audit {
++                annotations.push("audit");
++            }
++            annotations.push("verified");
++
++            if dry_run {
++                Ok(Route::Preview {
++                    backend: self.backend("secondary")?,
++                    annotations,
++                })
++            } else {
++                Ok(Route::Execute {
++                    backend: self.backend("secondary")?,
++                    annotations,
++                })
++            }
++        } else if mode == "offline" {
++            if request.account_id.is_empty() {
++                return Err(RouteError::MissingAccount);
++            }
++            if request.payload.len() > MAX_PAYLOAD_SIZE {
++                return Err(RouteError::PayloadTooLarge);
++            }
++
++            if audit {
++                annotations.push("audit");
++            }
++            annotations.push("offline");
++
++            if dry_run {
++                Ok(Route::Preview {
++                    backend: self.backend("archive")?,
++                    annotations,
++                })
++            } else {
++                Ok(Route::Execute {
++                    backend: self.backend("archive")?,
++                    annotations,
++                })
++            }
++        } else {
++            Err(RouteError::UnknownMode(mode.to_owned()))
++        }
++    }
+ }

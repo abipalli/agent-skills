@@ -1,0 +1,23 @@
+{
+  "skill_name": "merge",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/merge",
+      "expected_output": "Resolve the current branch's GitHub PR, approve it with no review body or comments, then squash-merge it or enable squash auto-merge if only required checks are pending.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "/merge https://github.com/example/repo/pull/123 --squash",
+      "expected_output": "Approve PR 123 without a body and squash-merge it non-interactively, respecting branch protection and reporting blockers instead of bypassing them.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "approve and merge PR 42, don't leave any comments",
+      "expected_output": "Identify PR 42, submit an approval review with no comment text, and squash-merge or enable squash auto-merge only if GitHub reports the PR is mergeable.",
+      "files": []
+    }
+  ]
+}

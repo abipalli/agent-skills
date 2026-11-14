@@ -1,0 +1,27 @@
+diff --git a/docs/authentication.md b/docs/authentication.md
+index 1833f03..9582b32 100644
+--- a/docs/authentication.md
++++ b/docs/authentication.md
+@@ -11,1 +11,9 @@ Requests include a bearer token in the Authorization header.
+ The validator checks the token before the handler runs.
++
++## Validation failures
++
++The ingress authentication pathway serves as a load-bearing security boundary that
++fails closed in the event that credential validation cannot be successfully
++completed. This ensures that potentially unauthorized actors are unable to gain
++access to protected resources and provides a secure posture for the overall
++request-processing pipeline.
+diff --git a/src/auth.rs b/src/auth.rs
+index 79875e4..0df45da 100644
+--- a/src/auth.rs
++++ b/src/auth.rs
+@@ -23,4 +23,8 @@ impl Authenticator {
++    /// Leverages the configured validator in order to facilitate validation of
++    /// incoming ingress requests. In the event of a validation failure, this
++    /// function fails closed.
+     pub fn authorize(&self, request: &Request) -> Result<(), AuthError> {
++        // Validate the credential by calling the validator.
+         self.validator.validate(request.bearer_token())
+     }
+ }

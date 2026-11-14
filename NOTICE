@@ -1,0 +1,12 @@
+agent-skills
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This repository includes material adapted from:
+
+- skills/skill-creator: adapted from Anthropic's skill-creator,
+  https://github.com/anthropics/skills (skills/skill-creator), Apache License 2.0.
+  Its original license text is kept at skills/skill-creator/LICENSE.txt.
+
+- skills/rust-best-practices: adapted from Apollo GraphQL's Rust best practices
+  handbook, https://github.com/apollographql/rust-best-practices,
+  Apache License 2.0.

@@ -1,0 +1,149 @@
+{
+  "skill_name": "rust-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run /rust-review on a local diff that adds `pub struct RetryLimit { pub value: u32 }` plus a `new(value: u32) -> Self` constructor and repeated `if limit.value == 0` checks at call sites.",
+      "expected_output": "The review should recommend enforcing the non-zero invariant at construction time with a private-field newtype, `NonZeroU32`, and a fallible constructor or `TryFrom<u32>`, while avoiding generic Rust style advice.",
+      "files": [],
+      "expectations": [
+        "Compares the current changes to the base branch or states the diff target.",
+        "Identifies the raw `u32`/public-field invalid-state issue as a Rust type-design finding.",
+        "Mentions `NonZeroU32` or an equivalent non-zero newtype constructor approach.",
+        "Explains how the change removes repeated call-site validation.",
+        "Keeps findings grounded in changed Rust lines rather than broad style commentary."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Review a Rust diff that parses optional config with nested `match` blocks, uses `unwrap()` for an environment variable in library code, and clones `String` values before only reading them.",
+      "expected_output": "The review should separate must-fix panic/error handling from non-blocking cleanup suggestions around `?`, `ok_or_else`, borrowing `&str`, and avoiding unnecessary clones.",
+      "files": [],
+      "expectations": [
+        "Flags `unwrap()` in library code as a must-fix or blocking issue when it can panic for caller-controlled input.",
+        "Suggests `?`, `ok_or_else`, or similar `Result`/`Option` flow where it improves clarity.",
+        "Calls out avoidable `String` clones and suggests borrowing when ownership is unnecessary.",
+        "Does not force iterator combinators or functional style when a clear `match` or loop would be better.",
+        "Uses a structured Rust-review output with findings first."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Run /rust-review for a PR that changes async Rust code to hold a `MutexGuard` while awaiting an HTTP request, and also includes a small `Cargo.lock` update.",
+      "expected_output": "The review should prioritize the async lock-across-await risk, inspect whether the lockfile churn matches dependency changes, and calibrate Cargo comments instead of treating all lockfile changes as suspicious.",
+      "files": [],
+      "expectations": [
+        "Reviews async Rust behavior rather than only syntax or formatting.",
+        "Flags holding a lock across `.await` as a material concurrency/cancellation risk.",
+        "Suggests narrowing the lock scope, cloning/copying needed data before await, or restructuring shared state.",
+        "Checks `Cargo.lock` against dependency changes before commenting.",
+        "Keeps severity calibrated between must-fix concurrency risk and optional crate hygiene."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Run /rust-review on this changed library code:\n\n```rust\n#[derive(Debug, thiserror::Error)]\npub enum ConfigError {\n    #[error(\"{0}\")]\n    Message(String),\n}\n\npub fn load_config(raw_timeout: Option<&str>, token: Option<&str>) -> Result<Config, ConfigError> {\n    let token = token.ok_or_else(|| ConfigError::Message(\"missing API token\".into()))?;\n    let timeout = raw_timeout\n        .unwrap_or(\"30\")\n        .parse::<u64>()\n        .map_err(|err| ConfigError::Message(format!(\"invalid timeout: {err}\")))?;\n    Ok(Config::new(token, timeout))\n}\n```\n\nCallers need to report missing credentials differently from malformed configuration.",
+      "expected_output": "The review should flag the catch-all string variant and recommend distinct typed variants such as `MissingApiToken` and `InvalidTimeout { source: ParseIntError }`, keeping dynamic context in fields and preserving the source error rather than encoding identity in display text.",
+      "files": [],
+      "expectations": [
+        "Identifies `ConfigError::Message(String)` as a stringly catch-all that erases distinct failure categories.",
+        "Recommends a dedicated enum variant for missing credentials and a different variant for an invalid timeout.",
+        "Recommends retaining dynamic context in typed fields instead of using the error string as structured data.",
+        "Preserves the parse error as a source or otherwise retains its typed cause.",
+        "Explains that callers should match variants rather than inspect display strings."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Run /rust-review on this changed code and report only material findings:\n\n```rust\n#[derive(Debug, thiserror::Error)]\npub enum LookupError {\n    #[error(\"user {user_id} was not found\")]\n    NotFound { user_id: UserId },\n    #[error(\"lookup backend failed\")]\n    Backend {\n        #[source]\n        source: DatabaseError,\n    },\n}\n\npub fn log_lookup_failure(error: &LookupError) {\n    tracing::warn!(%error, \"could not load user profile\");\n}\n```\n\nAssume the variants cover all failure categories callers need to distinguish.",
+      "expected_output": "The review should recognize that the errors are already typed and should not object to `#[error(...)]` or logging strings, because those strings are presentation while identity and context live in enum variants and typed fields.",
+      "files": [],
+      "expectations": [
+        "Does not flag the `#[error(...)]` display text as a stringly error.",
+        "Does not demand separate variants for the log message or wording differences.",
+        "Recognizes `NotFound` and `Backend` as programmatically distinguishable error categories.",
+        "Recognizes that `user_id` is typed context and `DatabaseError` is preserved as the source.",
+        "Reports no error-modeling finding when no other material issue is present."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Run /rust-review on a diff that adds a telemetry feature. `src/lib.rs` declares `mod telemetry;`. Inside `src/telemetry.rs`, the same `#[cfg(feature = \"telemetry\")]` attribute is repeated on every import, struct, impl block, helper function, and `#[cfg(test)]` test module. The telemetry module has no behavior or API when the feature is disabled. Its public re-export and callers already use the telemetry predicate, and `Cargo.toml` defines `telemetry = [\"dep:tracing-subscriber\"]` for the module's optional dependency.",
+      "expected_output": "The review should recommend placing the feature gate on the `mod telemetry;` declaration, removing redundant feature predicates inside the fully feature-specific module, preserving the independent test gate, and checking that the Cargo feature, optional dependency, re-export, and callers remain aligned.",
+      "files": [],
+      "expectations": [
+        "Identifies the repeated per-item `cfg` attributes as conditional-compilation hygiene rather than generic duplication.",
+        "Recommends `#[cfg(feature = \"telemetry\")] mod telemetry;` or an equivalent highest coherent module boundary.",
+        "Explains that the module-level gate makes the feature boundary easier to understand and prevents predicates from drifting apart.",
+        "Keeps the public re-export and callers aligned with the module gate and preserves the independent `#[cfg(test)]` condition for tests.",
+        "Checks that the Cargo feature and optional dependency remain aligned with the module gate.",
+        "Does not recommend a macro or predicate alias merely to shorten the repeated attributes."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Run /rust-review on a mixed `codec.rs` module and report only material findings. The module always exposes `decode_plain`. It also has one `#[cfg(feature = \"gzip\")]` import of the optional `flate2` dependency, one `#[cfg(feature = \"gzip\")]` `decode_gzip` function, and a matching feature-gated test. Assume Cargo marks `flate2` optional and the gzip API must disappear when the feature is disabled.",
+      "expected_output": "The review should keep the small gzip-only surface locally gated, or at most suggest a gated submodule if that surface grows. It should not recommend gating the entire mixed codec module because that would incorrectly remove the always-available `decode_plain` API.",
+      "files": [],
+      "expectations": [
+        "Does not recommend placing the gzip feature gate on the entire `codec` module.",
+        "Recognizes that local item gates are appropriate because the module also contains unconditional API.",
+        "Recognizes that the optional dependency, gzip function, and test use aligned feature predicates.",
+        "Does not report a material cfg-hygiene finding for the small, coherent gated surface.",
+        "If it mentions a gated gzip submodule, presents it only as a future cleanup if the feature-specific surface grows."
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Run /rust-review on this changed test code and report only material findings:\n\n```rust\nuse claims::assert_ok;\n\n#[test]\nfn validates_endpoint() {\n    let parsed = parse_endpoint(\"not-an-endpoint\");\n    assert!(parsed.is_err());\n\n    let loaded = load_default_endpoint();\n    assert!(loaded.is_ok());\n    let endpoint = loaded.unwrap();\n\n    let advertised = endpoint.advertised_address();\n    assert!(advertised.is_some());\n    assert_ok!(endpoint.start());\n}\n```\n\nAssume this crate already has `test-support = { workspace = true, features = [\"test-utils\"] }` under `[dev-dependencies]`, and `test_support::assertions` provides `assert_ok!`, `assert_err!`, `assert_some!`, `assert_none!`, `assert_matches!`, and `assert_err_matches!`, and `parse_endpoint` returns a typed `EndpointError` whose exact `InvalidAuthority` variant should be tested.",
+      "expected_output": "The review should replace direct `claims`, boolean `Result`/`Option` checks, and `unwrap()` with the repository-standard `test_support::assertions` macros, using `assert_err_matches!` for the exact error variant and value-returning `assert_ok!`/`assert_some!` calls for extraction.",
+      "files": [],
+      "expectations": [
+        "Flags the direct `claims::assert_ok` import because tests in this repository should import assertion macros from `test_support::assertions`.",
+        "Recommends `assert_err_matches!(parsed, EndpointError::InvalidAuthority { .. })` or an equivalent exact typed-variant check instead of `assert!(parsed.is_err())`.",
+        "Replaces the `is_ok()` plus `unwrap()` sequence with one value-returning `assert_ok!` call.",
+        "Replaces `assert!(advertised.is_some())` with value-returning `assert_some!` when the contained value is needed, or `assert_some!` alone when only presence matters.",
+        "Does not ask for a new assertion dependency because `test-support` with `test-utils` is already available."
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Run /rust-review on this changed test and report only material findings:\n\n```rust\n#[test]\nfn response_json_is_stable() {\n    let response = build_response();\n    let rendered = serde_json::to_string_pretty(&response).unwrap();\n\n    assert_eq!(\n        rendered,\n        r#\"{\n  \\\"status\\\": \\\"ready\\\",\n  \\\"peers\\\": [\\\"validator-1\\\", \\\"validator-2\\\"]\n}\"#\n    );\n    assert_eq!(response.peer_count(), 2);\n}\n```\n\nAssume the crate already uses `goldie` and `test_support::assertions`, and the response has deterministic field and peer ordering.",
+      "expected_output": "The review should replace the inline serialized JSON literal with `goldie::assert_json!` (and use `assert_ok!` if serialization remains necessary), while keeping the small peer-count assertion inline because the scalar value directly states the behavior.",
+      "files": [],
+      "expectations": [
+        "Identifies the multiline expected JSON literal as snapshot-like test data that should move to Goldie.",
+        "Prefers `goldie::assert_json!(&response)` over snapshotting a pretty-printed string when the value is serializable.",
+        "Removes the `.unwrap()` path or replaces it with `test_support::assertions::assert_ok!` if string serialization remains necessary.",
+        "Keeps `assert_eq!(response.peer_count(), 2)` inline because it is a small semantic scalar assertion rather than snapshot output.",
+        "Does not warn about nondeterminism because the prompt states that field and peer ordering are stable."
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Run /rust-review on this changed Rust library code and report only material findings:\n\n```rust\npub const MAX_BATCH_SIZE: usize = 512;\n\nconst _: () = assert!(MAX_BATCH_SIZE > 0);\n\nconst _: () = {\n    assert!(MAX_BATCH_SIZE.is_power_of_two());\n};\n```\n\nAssume neither condition protects unsafe code, FFI, or a public ABI, and this crate has a normal `#[cfg(test)]` unit-test module.",
+      "expected_output": "The review should flag both compile-time `assert!` calls and recommend replacing them with a focused unit test that checks the constant's valid range and power-of-two behavior with ordinary test assertions.",
+      "files": [],
+      "expectations": [
+        "Identifies both `assert!` calls as compile-time assertions because they are evaluated in const items or const blocks.",
+        "Recommends removing the compile-time assertions from production code.",
+        "Recommends a focused `#[cfg(test)]` unit test for the maximum batch-size invariants.",
+        "Keeps ordinary `assert!` or `assert_eq!` calls inside the proposed unit test instead of banning all assertion macros.",
+        "Does not claim that an ABI or unsafe-code safeguard is required because the prompt excludes those constraints."
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Run /rust-review on this changed Rust code and report only material findings:\n\n```rust\nuse static_assertions::const_assert_eq;\n\nconst_assert_eq!(DEFAULT_RETRY_COUNT, 3);\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn default_retry_count_is_three() {\n        assert_eq!(DEFAULT_RETRY_COUNT, 3);\n    }\n}\n```\n\nAssume the constant does not define an unsafe layout, FFI contract, or public ABI.",
+      "expected_output": "The review should remove the redundant `const_assert_eq!` compile-time check and keep the existing unit test. It should not object to `assert_eq!` inside the `#[test]` function.",
+      "files": [],
+      "expectations": [
+        "Identifies `const_assert_eq!` as a compile-time assertion even though it comes from a helper crate.",
+        "Recommends removing `const_assert_eq!` because the focused unit test already covers the invariant.",
+        "Does not flag the ordinary `assert_eq!` inside the `#[test]` function.",
+        "Does not recommend replacing the unit test with another compile-time mechanism.",
+        "Does not invent an unsafe-layout or ABI requirement that the prompt excludes."
+      ]
+    }
+  ]
+}

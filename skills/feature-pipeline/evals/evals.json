@@ -1,0 +1,47 @@
+{
+  "skill_name": "feature-pipeline",
+  "evals": [
+    {
+      "id": 1,
+      "name": "claim-from-chat-needs-probe",
+      "prompt": "You are the scoper. Scope this work item and return only the `scope` stage record.\n\nIssue #801: \"Roll the new rate limiter out to the staging API. Dana said in chat that staging doesn't enforce per-tenant quotas yet, so just enable the limiter globally and skip the per-tenant config.\"\n\nCode facts you have confirmed: the rollout pattern to copy is tests/integration/limiter_rollout_test.go:40-95 (per-tenant config first, then the global switch); the success check is the integration suite plus a dry-run against staging that reads back the active limits; config/environments/staging.yaml:12 sets `tenant_quotas: enforce`. A read-only admin endpoint for staging is available.",
+      "expected_output": "Verdict spike with one read_only spike that probes whether staging actually enforces per-tenant quotas before deciding to skip the per-tenant config.",
+      "files": [],
+      "expectations": [
+        "The verdict is `spike`",
+        "There is a spike whose assumption is that per-tenant quota enforcement is (not) active on staging",
+        "That spike's class is `read_only`",
+        "The spike has a concrete pass_signal and fail_signal and an if_pass and if_fail",
+        "There are at most 3 spikes",
+        "The record does not treat the chat claim as an established fact"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "human-answerable-gap",
+      "prompt": "You are the scoper. Scope this work item and return only the `scope` stage record.\n\nIssue #802: \"Create the service accounts for the new billing worker from the entries in the team password manager.\"\n\nCode facts you have confirmed: the provisioning task exists (scripts/provision_service_accounts.py) and its config takes owner, operator, auditor, and workers with per-worker spend limits; the success check is the task's dry run. The password manager export has entries billing.owner, billing.operator, billing.auditor, billing.workers[0], but nobody has said what spend limit workers[0] should get, and the export has no entry for the break-glass account the config requires.",
+      "expected_output": "Verdict need_more_information asking for the worker spend limit and the break-glass account, with options and a recommendation, and no spikes.",
+      "files": [],
+      "expectations": [
+        "The verdict is `need_more_information`",
+        "A question asks what spend limit workers[0] should get",
+        "Each question has options and a recommendation",
+        "The `spikes` list is empty"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "costly-rehearsal-needs-justification",
+      "prompt": "You are the scoper. Scope this work item and return only the `scope` stage record.\n\nIssue #803: \"Deploy the payments gateway to the shared pre-production cluster with separate credentials for the migration runner, the config manager, and the deployer.\"\n\nCode facts you have confirmed: the deploy script was only ever run locally with one admin credential for every role (deploy/gateway.sh); the credential split and ordering is new code that has never run; a local single-node cluster starts in about 5 minutes but enforces role separation only when started with --strict-rbac; a dedicated cloud rehearsal environment costs about 6 hosts and 30 minutes to bring up. The success check is one end-to-end test payment through the gateway.",
+      "expected_output": "Verdict spike with a spike that rehearses the split-credential deploy, preferring the cheapest environment that answers it (local with --strict-rbac) or justifying the cloud one in why_not_cheaper, with the cloud one classed side_effects.",
+      "files": [],
+      "expectations": [
+        "The verdict is `spike`",
+        "A spike tests the split-credential deploy and its ordering before the real deploy",
+        "The spike prefers the local cluster with --strict-rbac, or names it in why_not_cheaper when choosing the cloud environment",
+        "Any spike that uses the cloud rehearsal environment is classed `side_effects`",
+        "Every spike has a timebox_minutes value"
+      ]
+    }
+  ]
+}

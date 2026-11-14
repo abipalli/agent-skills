@@ -1,0 +1,37 @@
+diff --git a/src/checkpoint.rs b/src/checkpoint.rs
+index 8c93964..254b98c 100644
+--- a/src/checkpoint.rs
++++ b/src/checkpoint.rs
+@@ -21,7 +21,7 @@ impl CheckpointStore {
+         Ok(())
+     }
+ 
+-    fn save(&self, checkpoint: &Checkpoint) -> Result<(), StoreError> {
++    fn persist_checkpoint(&self, checkpoint: &Checkpoint) -> Result<(), StoreError> {
+         self.database.put(CHECKPOINT_KEY, checkpoint.encode())
+     }
+ 
+@@ -32,13 +32,13 @@ impl CheckpointStore {
+         if checkpoint.height <= current.height {
+             return Ok(());
+         }
+-        self.save(checkpoint)
++        self.persist_checkpoint(checkpoint)
+     }
+ 
+     pub fn reset(&self) -> Result<(), StoreError> {
+         let checkpoint = Checkpoint::genesis();
+-        self.save(&checkpoint)
++        self.persist_checkpoint(&checkpoint)
+     }
+ }
+ 
+@@ -51,7 +51,7 @@ mod tests {
+     fn stores_newer_checkpoint() {
+         let store = test_store();
+         let checkpoint = Checkpoint::at_height(42);
+-        store.save(&checkpoint).unwrap();
++        store.persist_checkpoint(&checkpoint).unwrap();
+         assert_eq!(store.current().unwrap(), checkpoint);
+     }
+ }

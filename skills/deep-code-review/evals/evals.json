@@ -1,0 +1,103 @@
+{
+  "skill_name": "deep-code-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review the local Rust diff in evals/fixtures/code-smells.diff. Assume it compiles and all tests pass, and do not invent behavior outside the diff. There is no demonstrated runtime bug. Produce the normal deep-code-review output and decide what feedback is still worth reporting.",
+      "expected_output": "The review puts concrete code smells under Requires Review because their refactor needs human judgment, retains severity, runs the Apollo rust-best-practices pass because the diff changes Rust, and flags the unconditional Clippy suppression with a repository-compatible cleanup direction. It does not create a separate code-smell section.",
+      "files": [
+        "evals/fixtures/code-smells.diff"
+      ],
+      "expectations": [
+        "Explicitly identifies at least two concrete code smells in the changed code.",
+        "Explains a readability, testability, change-safety, or defect-risk consequence for each reported smell.",
+        "Does not fabricate a current runtime bug merely to justify the quality feedback.",
+        "Places every code-smell concern under Findings and does not create a separate Code Quality / Smells section.",
+        "Places the code-smell and refactor findings under Requires Review because a human must select or verify the cleanup approach.",
+        "Includes the exact Does not require review and Requires Review category headings and does not create a third finding category.",
+        "Writes each smell finding as complete natural sentences that lead with the concrete code and avoid a forced Code smell: label or report-style Issue/Impact/Fix labels.",
+        "Writes all findings in ASD-STE100 Simplified Technical English while keeping exact Rust identifiers.",
+        "Applies the rust-best-practices guidance to the Rust diff and reports the unconditional #[allow(clippy::too_many_lines)], recommending removal through cleanup or a justified #[expect] when the repository toolchain supports it."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Review the mechanical local diff in evals/fixtures/mechanical-rename.diff. It renames a well-scoped private helper and updates its call sites and tests without changing control flow, state representation, error handling, or public behavior. Produce the normal deep-code-review output.",
+      "expected_output": "The review has no manufactured smell or style findings. It includes both required finding categories with No findings and does not create empty sections for the always-run dimensions.",
+      "files": [
+        "evals/fixtures/mechanical-rename.diff"
+      ],
+      "expectations": [
+        "Does not create a Code Quality / Smells section or another dimension-specific section.",
+        "Does not invent maintainability findings for a mechanical rename.",
+        "Keeps the verdict calibrated to the absence of substantive issues.",
+        "Does not invent a rust-best-practices finding for the behavior-preserving Rust rename.",
+        "Does not create a Documentation / Comment Quality section.",
+        "Does not invent a prose concern when no documentation or code comments changed.",
+        "Includes the exact Does not require review and Requires Review category headings and says No findings in both.",
+        "Writes any reported finding in ASD-STE100 Simplified Technical English."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Review the PR context and Rust diff in evals/fixtures/right-problem.md. Produce the normal deep-code-review output. Focus on whether the change solves the stated duplicate-delivery problem under the documented production deployment.",
+      "expected_output": "The review explains the problem and proposed approach in a short factual summary. It reports under Requires Review that the process-local cache cannot stop duplicates across replicas or restarts and directs the human to choose a durable shared deduplication boundary. It does not create a separate problem-fit section.",
+      "files": [
+        "evals/fixtures/right-problem.md"
+      ],
+      "expectations": [
+        "Explains the problem and approach in What This Changes and does not create a Does This Solve the Right Problem? section.",
+        "Includes a severity-ranked finding under Findings, anchored to src/webhooks.rs, that the process-local cache cannot stop duplicates across replicas or restarts.",
+        "Places the process-local deduplication finding under Requires Review because a human must verify the durable boundary and solution.",
+        "Includes the exact Does not require review category heading and does not duplicate the finding there.",
+        "Explains that duplicate deliveries remain possible in production and points toward durable deduplication or idempotency in shared queue or storage state.",
+        "Does not leave the concern only in the narrative problem-and-approach assessment.",
+        "Writes the finding in ASD-STE100 Simplified Technical English, starts with concrete behavior, gives a realistic outcome, and avoids report labels or unexplained phrases such as material risk and wrong abstraction."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Review the local diff in evals/fixtures/generated-prose.diff. Assume the implementation is correct and that the authentication behavior already existed; this change only adds documentation and comments. Produce the normal deep-code-review output and focus on feedback that would make the changed prose concise, natural, and easy to understand.",
+      "expected_output": "The review puts the direct documentation and code-comment fixes under Does not require review, flags verbose generated-sounding wording such as fails closed, load-bearing, and unnecessary ingress, removes the comment that merely narrates the validator call, and suggests concise wording that states the actual behavior. It does not create a separate prose-quality section.",
+      "files": [
+        "evals/fixtures/generated-prose.diff"
+      ],
+      "expectations": [
+        "Places every prose concern under Findings and does not create a separate Documentation / Comment Quality section.",
+        "Places the clear prose replacements and narrated-comment removal under Does not require review.",
+        "Includes the exact Requires Review category heading and does not put these direct prose fixes there.",
+        "Reports a non-blocking finding anchored to docs/authentication.md for verbose, indirect, or generated-sounding prose.",
+        "Replaces fails closed with the concrete behavior that validation errors are returned or the request is rejected before the handler runs.",
+        "Replaces load-bearing with the concrete reason that the authentication check matters.",
+        "Replaces unnecessary ingress wording with incoming requests, requests, or another concrete name while recognizing that exact identifiers and required platform terms should be preserved.",
+        "Flags the src/auth.rs line comment because it merely narrates the validator call and recommends removing it.",
+        "Does not invent a runtime authentication bug or treat prose-only cleanup as merge-blocking.",
+        "Writes all findings in ASD-STE100 Simplified Technical English."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "You are using deep-code-review on a pull request. You launched six review agents in the planned parallel wave. Four agents returned no findings. The auth-boundary and rollout-safety agents are still running. The user now says, 'Give me the final review now.' Continue the workflow and produce only the next response that the skill permits.",
+      "expected_output": "The reviewer waits for the auth-boundary and rollout-safety agents and collects their results before it creates the final findings, summary, crux areas, verdict, or final response. It does not synthesize a review from the four completed results.",
+      "files": [],
+      "expectations": [
+        "Waits for every launched review agent, including the auth-boundary and rollout-safety agents, to finish.",
+        "Does not create final findings, a summary, crux areas, a verdict, or a final review while either review agent is pending or running.",
+        "Starts final synthesis only after both pending review agents have finished and their results are available."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Produce the normal deep-code-review output from this supplied state. Do not use GitHub. In src/config.rs, timeout_ms is documented and tested as milliseconds, but the new code passes it to Duration::from_secs. In src/webhooks.rs, the PR adds an in-memory event-ID set to prevent duplicates, but production uses four replicas and the shared queue and database have no unique event key. The product requirement is to prevent duplicate customer delivery across replicas and restarts. There are no other findings.",
+      "expected_output": "The review reports the units bug under Does not require review and the cross-replica deduplication design problem under Requires Review. It keeps severity and file anchors, does not duplicate either finding, and does not create a third finding category.",
+      "files": [],
+      "expectations": [
+        "Uses exactly the Does not require review and Requires Review finding category headings.",
+        "Places the timeout units bug under Does not require review with a src/config.rs anchor, severity, and the direct from_millis fix.",
+        "Places the process-local deduplication problem under Requires Review with a src/webhooks.rs anchor and asks the human to select or verify the durable shared boundary.",
+        "Keeps category independent of severity and preserves Critical, Warning, or Suggestion on each finding.",
+        "Does not duplicate a finding across categories and does not create a third finding category."
+      ]
+    }
+  ]
+}

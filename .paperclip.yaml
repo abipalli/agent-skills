@@ -1,0 +1,43 @@
+schema: paperclip/v1
+# Runtime per agent. Model and effort follow CONVENTIONS.md: the strongest model
+# where judgement decides the outcome, a mid-tier one where the work is
+# well-specified. Reviewers work best on a different model family from the
+# builders; switch `reviewer` to another adapter (e.g. codex_local) if you have one.
+# Block style only: Paperclip's YAML reader does not parse {flow} maps.
+agents:
+  conductor:
+    adapter:
+      type: claude_local
+      config:
+        model: claude-sonnet-5-5
+        effort: medium
+    inputs:
+      env:
+        FP_LITELLM_URL:
+          kind: plain
+          requirement: optional
+          default: "http://127.0.0.1:4000"
+        FP_LITELLM_KEY:
+          kind: secret
+          requirement: required
+        GH_TOKEN:
+          kind: secret
+          requirement: required
+  scoper:
+    adapter:
+      type: claude_local
+      config:
+        model: claude-opus-5-5
+        effort: xhigh
+  builder:
+    adapter:
+      type: claude_local
+      config:
+        model: claude-sonnet-5-5
+        effort: medium
+  reviewer:
+    adapter:
+      type: claude_local
+      config:
+        model: claude-opus-5-5
+        effort: xhigh

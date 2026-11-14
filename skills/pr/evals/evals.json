@@ -1,0 +1,23 @@
+{
+  "skill_name": "pr",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/pr Add validation so the payments API rejects blank customer memo fields. Include tests and open the PR when it is ready.",
+      "expected_output": "The agent should inspect the repo, create or reuse the authenticated user's fork remote, sync the fork default branch from upstream, create a slash-delimited branch such as fix/reject-blank-customer-memos on the fork, implement the validation and tests, push the branch to the fork remote, and create a PR back to the upstream repo with a summary and verification notes.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "/pr I already made a couple of local edits for the README typo fix. Please turn the current worktree changes into a PR using branch codex/readme-typo.",
+      "expected_output": "The agent should detect the dirty worktree, preserve and include the relevant existing changes, use the requested branch name, set up and sync the fork remote, commit only the intended README edits, push to the fork branch, and create the PR without resetting or stashing unrelated work silently.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Create a PR for this repo that adds a CLI flag to print JSON output. Make it a draft because I still need to manually test it.",
+      "expected_output": "The agent should follow the fork-first workflow, derive a suitable slash-delimited branch such as feat/json-output, implement the CLI flag, run available automated checks, push to the authenticated user's fork, and create a draft PR to the upstream default branch with any manual-testing gap called out.",
+      "files": []
+    }
+  ]
+}
