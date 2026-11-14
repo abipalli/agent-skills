@@ -5,5 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - run: pip install pyyaml
       - run: python3 scripts/validate.py --test && python3 scripts/validate.py

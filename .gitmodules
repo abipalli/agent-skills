@@ -1,0 +1,9 @@
+[submodule "vendor/ponytail"]
+	path = vendor/ponytail
+	url = https://github.com/DietrichGebert/ponytail.git
+[submodule "vendor/caveman"]
+	path = vendor/caveman
+	url = https://github.com/JuliusBrussee/caveman.git
+[submodule "vendor/gh-stack"]
+	path = vendor/gh-stack
+	url = https://github.com/github/gh-stack.git

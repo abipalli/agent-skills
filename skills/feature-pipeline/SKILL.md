@@ -2,7 +2,7 @@
 name: feature-pipeline
 model: sonnet
 effort: medium
-description: "Take one work item through intake, scope (with optional spikes), build in worktrees, a multi-lane review panel, and an approval gate that ends in a PR. Every stage is recorded on one durable LiteLLM run, so a job survives the session and shows up in any UI that reads those runs. The conductor plans, routes and keeps the record: a read-only scoper, worktree builders and read-only reviewers do the work. Use when the user says \"feature-pipeline\", \"run the pipeline on <issue>\", \"pipeline this ticket\", \"new job\", \"resume job <id>\", or hands over a feature request or bug for a configured repo."
+description: "Take one work item from intake to an approved PR: scope, optional spikes, build in worktrees, a review panel and an approval gate, with every stage recorded on a durable run. Use for \"feature-pipeline\", \"pipeline this issue\", \"resume job <id>\"."
 metadata:
   calls: ["run-ledger", "stage-intake", "stage-scope", "stage-spike", "stage-build", "stage-review", "stage-approve"]
   pipeline:

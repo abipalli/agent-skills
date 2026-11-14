@@ -1,6 +1,6 @@
 ---
 name: stage-review
-description: "Pipeline stage 4. A review panel runs parallel lanes over one diff: a deep correctness review, an over-engineering review, and a conventions review. A validator then dedupes the findings and checks each one against the code, giving one verdict and the severity counts the approval policy reads. Loaded by a pipeline conductor such as feature-pipeline; not for direct use."
+description: "Pipeline stage 4: parallel review lanes plus a validator, giving one verdict and severity counts. Loaded by a pipeline conductor such as feature-pipeline."
 metadata:
   calls: ["run-ledger", "deep-code-review", "ponytail-review", "rust-review"]
 ---

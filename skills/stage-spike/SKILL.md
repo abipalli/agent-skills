@@ -1,6 +1,6 @@
 ---
 name: stage-spike
-description: "Pipeline stage 2b. Run the scoper's spikes (one-off probes, prototypes or proofs of concept that test the assumptions a brief rests on) in throwaway worktrees, with a human approval for anything with side effects, and record what they showed. Loaded by a pipeline conductor such as feature-pipeline; not for direct use."
+description: "Pipeline stage 2b: run scoping spikes in throwaway worktrees and record what they showed. Loaded by a pipeline conductor such as feature-pipeline."
 metadata:
   calls: ["run-ledger"]
 ---

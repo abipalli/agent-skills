@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parent.parent
 MODELS = ["haiku", "sonnet", "opus"]
 EFFORTS = ["low", "medium", "high", "xhigh", "max"]
 ACCESS = {"read-only", "worktree", "publish"}
+# Every installed skill's description sits in the agent's context all the time.
+MAX_DESC = 300
 # Things a public skill must not carry: machine paths, private hosts, real emails.
 PRIVATE = [
     (re.compile(r"(?<![\w.])/(?:home|Users|srv)/\w"), "absolute home/server path"),
@@ -24,6 +26,8 @@ PRIVATE = [
 ]
 
 errors, external = [], set()
+# Third-party skill packs, pinned as git submodules under vendor/.
+VENDORED = {p.parent.name: p for p in ROOT.glob("vendor/*/skills/*/SKILL.md")}
 
 
 def err(path, msg):
@@ -107,8 +111,8 @@ def check_skills():
         desc = fm.get("description") or ""
         if not desc.strip():
             err(md, "description is required")
-        elif len(desc) > 1024:
-            err(md, f"description is {len(desc)} characters, max 1024")
+        elif len(desc) > MAX_DESC:
+            err(md, f"description is {len(desc)} characters, max {MAX_DESC}: it is loaded into every session")
         for key, order in (("model", MODELS), ("effort", EFFORTS)):
             if key in fm and fm[key] not in order:
                 err(md, f"{key} {fm[key]!r} not in {order}")
@@ -118,9 +122,13 @@ def check_skills():
     for name, fm in skills.items():
         md = ROOT / "skills" / name / "SKILL.md"
         for callee in (fm.get("metadata") or {}).get("calls") or []:
-            if callee not in skills:
+            target = skills.get(callee)
+            if target is None and callee in VENDORED:  # read-only: no style rules for third-party files
+                raw, _ = split(VENDORED[callee].read_text())
+                target = yaml.safe_load(raw or "") or {}
+            if target is None:
                 external.add(callee)
-            elif lowers(fm, skills[callee]):
+            elif lowers(fm, target):
                 err(md, f"calls {callee}, whose tier is lower: it would downgrade the rest of the turn")
     return skills
 
@@ -141,7 +149,7 @@ def check_agents(skills):
         if (fm.get("metadata") or {}).get("access") not in ACCESS:
             err(md, f"metadata.access must be one of {sorted(ACCESS)}")
         for s in fm.get("skills") or []:
-            if s not in skills:
+            if s not in skills and s not in VENDORED:
                 external.add(s)
         if d.name not in configured:
             err(md, "no runtime entry under agents: in .paperclip.yaml")
@@ -178,8 +186,8 @@ def format_all():
 
 def check_tree():
     for p in sorted(ROOT.rglob("*")):
-        if ".git" in p.parts:
-            continue
+        if ".git" in p.parts or "vendor" in p.relative_to(ROOT).parts[:1]:
+            continue  # vendor/ is third-party code at a pinned commit
         if p.is_symlink():
             err(p, "symlink: Paperclip and GitHub skill installers drop these, commit real files")
         elif p.is_file() and p.suffix in {".md", ".py", ".json", ".yaml", ".yml", ".sh", ".txt"}:
@@ -219,7 +227,7 @@ if __name__ == "__main__":
     agents = check_agents(skills)
     check_pipelines(skills, agents)
     check_tree()
-    print(f"{len(skills)} skills, {len(agents)} agents")
+    print(f"{len(skills)} skills, {len(agents)} agents, {len(VENDORED)} vendored skills")
     if external:
         print("external skills (install separately):", ", ".join(sorted(external)))
     for e in errors:

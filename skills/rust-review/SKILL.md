@@ -1,6 +1,6 @@
 ---
 name: rust-review
-description: "Review Rust diffs against the base branch for idiomatic, cleaner, more functional Rust. Use when the user invokes /rust-review, asks for Rust idiom cleanup, or wants a Rust-specific review of changed .rs/Cargo files; checks for enum/newtype opportunities that make invalid states unrepresentable, typed error enums instead of stringly error categories, clean feature and cfg-gating boundaries, compile-time assertions that belong in unit tests, repository-native assertion macros and snapshot tests, over-broad visibility of methods/types/fields/modules/re-exports, and std/crate/dependency/library-backed implementation alternatives; also use as a focused pass inside broader code review when Rust code changes."
+description: "Rust lane for a code review: idioms, types that make invalid states unrepresentable, error enums, visibility, cfg boundaries, and std or crate alternatives. Use for \"rust review\" or inside a broader review of .rs changes."
 ---
 
 # Rust Review

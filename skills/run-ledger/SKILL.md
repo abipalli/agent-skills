@@ -1,6 +1,6 @@
 ---
 name: run-ledger
-description: "Durable state for a multi-stage agent pipeline. One pipeline run is one LiteLLM workflow run, and every stage records its result there as an event plus a metadata record. That lets a run survive the session, resume from any machine, and show up in any UI that reads LiteLLM runs. Also holds the per-repo gate runner and the auto-approve policy (scripts/fp.py). Used by feature-pipeline and its stage skills. Load it when a pipeline skill says to record a stage, or when the user asks for \"pipeline status\", \"list runs\" or \"show run <id>\"."
+description: "Durable pipeline state on LiteLLM workflow runs (scripts/fp.py): record stages, run repo gates, apply the auto-approve policy. Loaded by pipeline skills; use directly for \"pipeline status\", \"show run <id>\"."
 metadata:
   calls: []
 ---

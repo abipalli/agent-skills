@@ -1,6 +1,6 @@
 ---
 name: submit-review
-description: "Submit code review findings as inline PR comments via the GitHub CLI. Takes review findings (from deep-code-review or manual analysis) and posts them as a single GitHub PR review with inline comments, after the user approves the exact draft. Use when the user asks to \"submit review\", \"post comments\", \"submit PR feedback\", \"post review\", or \"comment on the PR\"."
+description: "Post review findings as one GitHub PR review with inline comments, after the user approves the exact draft. Use for \"submit review\", \"post comments on the PR\"."
 ---
 
 # Submit Review

@@ -4,7 +4,7 @@ model: opus
 effort: high
 metadata:
   calls: ["rust-review"]
-description: "Re-review an existing GitHub pull request after updates. Use this skill whenever the user invokes \"/re-review\", asks whether their prior PR review comments were addressed, asks to resolve addressed comments, asks what remains before merge, or wants a concise follow-up review that reruns focused Rust review when applicable and can hand off to submit-review or merge."
+description: "Re-review a GitHub PR after the author pushed updates: check each prior comment was addressed and what remains before merge. Use for \"re-review\", \"were my comments addressed\"."
 ---
 
 # Re-review
@@ -176,7 +176,7 @@ concrete failure mode, material risk, or useful clarifying question.
 
 When you produce findings that may be handed to `/submit-review`, write the
 suggested comment text like a human reviewer would write it on GitHub. These
-rules match the GitHub comment guidance in `deep-code-review`:
+rules match `deep-code-review`'s `references/github-comments.md`:
 
 - Start each suggested comment with exactly one lowercase prefix:
   - `issue:` for bugs, correctness problems, security risks, broken contracts,

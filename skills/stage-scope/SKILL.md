@@ -1,6 +1,6 @@
 ---
 name: stage-scope
-description: "Pipeline stage 2. A read-only, high-reasoning scoping verdict on one work item: need_more_information, spike, defer, rescoped or proceed. It is judged against a four-part implementation-brief bar and an explicit list of load-bearing assumptions. Loaded by a pipeline conductor such as feature-pipeline; not for direct use."
+description: "Pipeline stage 2: read-only scoping verdict (proceed, rescoped, spike, need_more_information, defer). Loaded by a pipeline conductor such as feature-pipeline."
 metadata:
   calls: ["run-ledger"]
 ---

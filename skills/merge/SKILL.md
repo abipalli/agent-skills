@@ -1,6 +1,6 @@
 ---
 name: merge
-description: "Approve and merge a GitHub pull request with no additional review comments. Use this skill whenever the user invokes `/merge`, says \"approve and merge\", \"merge this PR\", \"approve the PR without comments\", or asks for a GitHub PR to be approved and merged as a single workflow. This skill should always use GitHub's squash-and-merge flow: identify the target PR, submit an approval review with an empty body, and squash-merge or enable squash auto-merge without posting extra commentary on the PR."
+description: "Approve and squash-merge a GitHub PR with no extra comments. Use for \"/merge\", \"approve and merge\", \"merge this PR\"."
 ---
 
 # Merge

@@ -1,6 +1,6 @@
 ---
 name: stage-intake
-description: "Pipeline stage 1. Normalize one work item (free text, a GitHub issue or PR URL, a Jira key, or a chat thread permalink) into a brief the scope stage can judge, and open the pipeline run for it. Loaded by a pipeline conductor such as feature-pipeline; not for direct use."
+description: "Pipeline stage 1: turn a work item into a brief and open its run. Loaded by a pipeline conductor such as feature-pipeline."
 metadata:
   calls: ["run-ledger"]
 ---

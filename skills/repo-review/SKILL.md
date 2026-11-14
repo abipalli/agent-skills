@@ -2,7 +2,7 @@
 name: repo-review
 model: opus
 effort: xhigh
-description: "Deep whole-repository review for architecture, correctness, security, concurrency, operations, data integrity, tests, and maintainability. Use when the user asks to \"review this repo\", \"deep repo review\", \"audit this codebase\", \"analyze this project\", or invokes \"repo-review\". For PRs, branch diffs, commits, or patches, prefer the focused code-review skills instead."
+description: "Whole-repository audit: architecture, correctness, security, concurrency, operations, tests and maintainability, with fixes triaged. Use for \"review this repo\", \"audit this codebase\". For diffs or PRs use deep-code-review."
 ---
 
 # Repo Review

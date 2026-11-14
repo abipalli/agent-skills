@@ -1,6 +1,6 @@
 ---
 name: github-updates
-description: "GitHub PR briefing. Scans the user's configured repos for PRs involving them over the last N days (default 1), classifies each into blocked / needs-review / needs-response / ready-to-merge / awaiting-approval / stale / informational, and returns a prioritized, action-oriented summary. Uses up to 20 parallel subagents for deep per-PR analysis. Use when the user asks for \"github updates\", \"PR updates\", \"PR status\", \"what PRs need my attention\", \"review my PRs\", or invokes /github-updates [days]. Called directly by the user, or by a daily-briefing skill as its GitHub section."
+description: "Brief the PRs that need you across your configured GitHub repos over the last N days, ranked by action needed. Use for \"github updates\", \"what PRs need my attention\"."
 metadata:
   calls: []
 ---

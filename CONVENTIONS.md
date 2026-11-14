@@ -19,6 +19,7 @@ skills/<slug>/{scripts,references,assets,evals}/   optional, next to the skill t
 agents/<slug>/AGENTS.md       a role: who does it, with which skills, under which limits
 teams/<slug>/TEAM.md          a composition: a manager agent plus the agents and skills it runs
 .paperclip.yaml               runtime per agent (adapter, model, effort) for Paperclip
+vendor/<pack>/                third-party skill packs, as git submodules at a pinned commit
 ```
 
 Skills, agents and teams are flat directories named by slug. Nothing nests: a
@@ -42,7 +43,10 @@ metadata:
 ```
 
 - **`name`** must equal the directory name.
-- **`description`** is required, at most 1024 characters.
+- **`description`** is required, at most **300** characters. Every installed
+  skill's description stays in the agent's context all the time, so it pays to
+  keep it short. The Agent Skills spec allows 1024 characters; this repo caps it
+  lower.
 - **`model` / `effort`**: entry points only, see "Tiers".
 - **`metadata.sources`**: upstream provenance, when the skill is adapted.
 
@@ -60,11 +64,16 @@ the same:
 `--format`.
 
 - **`description`** decides when the skill triggers. Lead with what it does, then the
-  phrases that should trigger it. Don't use the description to summarise the body.
+  phrases that should trigger it. Don't use it to summarise the body. A callee's
+  description just names its job and who loads it.
+- **Keep the body lean.** Move anything only some runs need into `references/`,
+  with a line saying when to read it. Examples: posting rules used only when
+  posting, or the eval workflow used only when running evals. A body over about
+  500 lines is a sign something should move.
 - **`metadata.calls`** must list every skill the body tells the agent to load or run,
-  including skills from outside this repo (`ponytail-review`, say). The validator
-  checks the calls inside this repo; calls to outside skills are reported as
-  external.
+  including vendored ones (`ponytail-review`, say). The validator resolves calls
+  in `skills/` and `vendor/*/skills/`, applies the tier rule to both, and reports
+  anything else as external.
 - **No absolute paths, hostnames or personal details** anywhere in a skill. Refer to
   files next to the skill by relative path (`scripts/fp.py`), and to user
   configuration through environment variables.
@@ -146,3 +155,11 @@ skill and team.
 
 Run state does not live in any of these files. A pipeline records each stage as
 events on one durable run (see `run-ledger`), so any UI can show and resume it.
+
+## Vendored packs
+
+Third-party skills live in `vendor/<pack>/` as git submodules, pinned to a commit
+and updated only on purpose (`git submodule update --remote vendor/<pack>`, then
+review the diff). Don't copy their files into `skills/`, and don't symlink them
+there: Paperclip and GitHub skill installers drop symlinks. The validator doesn't
+scan `vendor/` for private details or style, because that is upstream's code.

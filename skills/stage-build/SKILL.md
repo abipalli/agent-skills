@@ -1,6 +1,6 @@
 ---
 name: stage-build
-description: "Pipeline stage 3. Plan a scoped brief into the fewest independent tasks, give each task to a builder in its own worktree, gate every task on its success check, and merge the tasks into one lane branch for review. Loaded by a pipeline conductor such as feature-pipeline; not for direct use."
+description: "Pipeline stage 3: plan tasks, delegate each to a builder in a worktree, gate on checks. Loaded by a pipeline conductor such as feature-pipeline."
 metadata:
   calls: ["run-ledger"]
 ---

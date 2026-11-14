@@ -4,7 +4,7 @@ model: opus
 effort: high
 metadata:
   calls: ["deep-code-review"]
-description: "Create GitHub pull requests from a fork-first workflow. Use this skill whenever the user invokes `/pr`, asks you to make changes and open a PR, says \"create a PR\", \"open a pull request\", \"push this branch to my fork\", or provides change context that should become a GitHub PR. This skill should drive the whole workflow: create or reuse the authenticated user's fork remote, sync the fork's default branch from the upstream repo, create a branch on the fork, make and verify the requested changes, push to the fork branch, and create the PR back to the upstream repository."
+description: "Make a change and open a GitHub PR from a fork: sync the fork, branch, verify, push and open the PR upstream. Use for \"/pr\", \"create a PR\", \"open a pull request\"."
 ---
 
 # PR

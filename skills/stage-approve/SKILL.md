@@ -1,6 +1,6 @@
 ---
 name: stage-approve
-description: "Pipeline stage 5, the approval gate. Rebase the lane and apply the repo's deterministic auto-approve policy (fp approve). Then either open a PR and merge it when the policy allows, or put the full case in front of a person and act on their decision. Loaded by a pipeline conductor such as feature-pipeline; not for direct use."
+description: "Pipeline stage 5: apply the repo's approval policy, open the PR, merge or hand to a person. Loaded by a pipeline conductor such as feature-pipeline."
 metadata:
   calls: ["run-ledger"]
 ---
