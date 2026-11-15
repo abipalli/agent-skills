@@ -3,9 +3,16 @@ schema: paperclip/v1
 # where judgement decides the outcome, a mid-tier one where the work is
 # well-specified. Reviewers work best on a different model family from the
 # builders; switch `reviewer` to another adapter (e.g. codex_local) if you have one.
+# Heartbeats are off: agents wake when assigned or mentioned, so an idle company
+# spends nothing. Turn a timer on per agent in Paperclip if you want one.
 # Block style only: Paperclip's YAML reader does not parse {flow} maps.
 agents:
   conductor:
+    role: pm
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: true
     adapter:
       type: claude_local
       config:
@@ -19,25 +26,74 @@ agents:
           default: "http://127.0.0.1:4000"
         FP_LITELLM_KEY:
           kind: secret
-          requirement: required
+          requirement: optional
         GH_TOKEN:
           kind: secret
-          requirement: required
+          requirement: optional
   scoper:
+    role: engineer
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: true
     adapter:
       type: claude_local
       config:
         model: claude-opus-5-5
         effort: xhigh
   builder:
+    role: engineer
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: true
     adapter:
       type: claude_local
       config:
         model: claude-sonnet-5-5
         effort: medium
   reviewer:
+    role: qa
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: true
     adapter:
       type: claude_local
       config:
         model: claude-opus-5-5
         effort: xhigh
+  chief-of-staff:
+    role: ceo
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: true
+    adapter:
+      type: claude_local
+      config:
+        model: claude-sonnet-5-5
+        effort: medium
+    inputs:
+      env:
+        FP_LITELLM_URL:
+          kind: plain
+          requirement: optional
+          default: "http://127.0.0.1:4000"
+        FP_LITELLM_KEY:
+          kind: secret
+          requirement: optional
+        FP_WORKFLOW_TYPE:
+          kind: plain
+          requirement: optional
+          default: "task"
+  researcher:
+    role: researcher
+    runtime:
+      heartbeat:
+        enabled: false
+        wakeOnDemand: true
+    adapter:
+      type: opencode_local
+      config:
+        model: litellm/cloud-deep

@@ -83,6 +83,22 @@ team feature-delivery
   pipeline skill that declares its stages, and a team that names it. See
   [Teams and pipelines](CONVENTIONS.md#teams-and-pipelines).
 
+### Running a company
+
+[`teams/company-core`](teams/company-core/TEAM.md) is the standing roster for a
+company run by agents, for example in Paperclip:
+
+| Agent | Does |
+| :--- | :--- |
+| [`chief-of-staff`](agents/chief-of-staff/AGENTS.md) | takes each delegated task, plans it, assigns the parts, follows up, and brings decisions to a person |
+| [`researcher`](agents/researcher/AGENTS.md) | researches and drafts from public material on low-cost models; never sees personal data |
+| [`conductor`](agents/conductor/AGENTS.md) | runs the feature pipeline for code changes |
+
+Code goes to the conductor, research to the researcher, and anything that spends,
+sends or commits goes to a person. In `.paperclip.yaml` every agent has its
+heartbeat timer off and wakes when it is assigned work, so an idle company costs
+nothing.
+
 ### Vendored skill packs
 
 Third-party packs live under `vendor/` as git submodules pinned to a known
