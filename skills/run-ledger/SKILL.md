@@ -12,7 +12,7 @@ Python's standard library only.
 
 ```sh
 FP=<this skill's directory>/scripts/fp.py
-$FP new <repo-dir> "<title>" "<request>"   # → RUN_ID; any dir inside the repo or its worktrees
+$FP new <repo-dir> "<title>" "<request>" [--from RUN_ID]   # → RUN_ID; --from links a task or investigation
 $FP list [paused|running|completed|...]    # RUN_ID  status  repo  stage  title
 $FP show RUN_ID                            # run, metadata, events, messages
 $FP step RUN_ID <stage> <event> '<json>'   # append an event; merge the JSON into metadata
@@ -22,6 +22,46 @@ $FP approve RUN_ID                         # repo policy → exit 0 auto, exit 3
 $FP done RUN_ID '<json output>'            # mark completed
 $FP selftest [repo-dir...]                 # policy self-check plus repo config check, no network
 ```
+
+## Run kinds
+
+`FP_WORKFLOW_TYPE` picks the kind; the default is `feature-delivery`.
+
+| Kind | Opened by | Ends with |
+| :--- | :--- | :--- |
+| `feature-delivery` | a pipeline conductor | a PR, through `fp approve`. The only kind that can merge. |
+| `investigation` | a scoper, for an open-ended question or proof of concept | `fp done` with the finding and a recommendation. Its code never lands. |
+| `task` | the owner's assistant, handing work off | the company lead closes it with a report. It holds no code. |
+
+- `fp approve` refuses every kind except `feature-delivery`.
+- Investigations follow `stage-spike`'s classes: anything with side effects
+  waits for a person.
+- A good investigation result is carried forward by a new `feature-delivery` run
+  opened with `--from` that links back to it. The investigation run itself never
+  becomes one.
+- Add a kind only when its end state, its gate or its readers differ. Put the
+  topic, repo or agent in metadata instead.
+
+## Merge guard
+
+`fp guard` is a Claude Code `PreToolUse` hook for `Bash`. It blocks `gh pr merge`
+unless the PR's feature-delivery run allows it:
+
+- `metadata.operator_decision.decision` is `approve`; or
+- `fp approve` said `auto` and the repo's `policy.auto_merge` is true.
+
+It finds the run by the PR URL or number in the command. Without one, it uses
+the run whose worktree is the current directory. It also blocks when it can't
+reach the ledger.
+
+```json
+{"hooks": {"PreToolUse": [{"matcher": "Bash",
+  "hooks": [{"type": "command", "command": "<this skill's directory>/scripts/fp.py guard"}]}]}}
+```
+
+It stops mistakes and a conductor that drifts from the rules. It can't stop an
+agent that writes a fake decision with the same key, so keep branch protection
+on the base branch.
 
 ## Prerequisites
 

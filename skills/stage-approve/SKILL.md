@@ -65,7 +65,8 @@ with AskUserQuestion. Put the full case in front of them:
 
 The options are `approve`, `changes_requested` (with notes) and `reject`. The answer
 arrives either in-session or as `metadata.operator_decision` on the run. Record it
-with `hook.received`.
+with `hook.received`, and put the answer in metadata so the merge guard sees it:
+`$FP step RUN_ID approve hook.received '{"operator_decision": {"decision": "approve", "note": "", "via": "session", "at": "<ISO time>"}}'`.
 
 - **`approve`:** merge as in 3a, or leave the merge to the person when they say so.
   Then `$FP done`.

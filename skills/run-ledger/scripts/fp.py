@@ -6,14 +6,20 @@ Environment: FP_LITELLM_URL (default http://127.0.0.1:4000), FP_LITELLM_KEY or t
 
 Repo config: .feature-pipeline.json at the root of the repo's main checkout.
 
-  fp.py new REPO_DIR TITLE [REQUEST] create a job for the repo containing REPO_DIR, print its run_id
+  fp.py new REPO_DIR TITLE [REQUEST] [--from RUN_ID]
+                                     create a job for the repo containing REPO_DIR, print its run_id;
+                                     --from links the task or investigation run it came from
   fp.py list [STATUS[,STATUS]]       list jobs (pending,running,paused,completed,failed)
   fp.py show RUN_ID                  run, metadata, events, messages
   fp.py step RUN_ID STAGE EVENT [JSON]   append event, merge {stage, **JSON} into metadata
   fp.py note RUN_ID ROLE TEXT        append a message (review comments, questions, answers)
   fp.py gates RUN_ID                 run the repo's gate commands in the job worktree, record results
   fp.py approve RUN_ID               apply the repo policy to the job worktree, record approve.decided
+                                     (feature-delivery runs only: no other kind can merge)
   fp.py done RUN_ID [JSON]           mark completed with output
+  fp.py guard                        Claude Code PreToolUse hook: blocks `gh pr merge` unless the PR's
+                                     feature-delivery run was auto-approved with auto_merge on, or a
+                                     person approved it (metadata.operator_decision)
   fp.py selftest [REPO_DIR...]       policy self-check + validate those repos' configs (no network)
 """
 import json
@@ -29,6 +35,8 @@ BASE = os.environ.get("FP_LITELLM_URL", "http://127.0.0.1:4000")
 TYPE = os.environ.get("FP_WORKFLOW_TYPE", "feature-delivery")
 KEY_FILE = os.path.expanduser("~/.config/feature-pipeline/key")
 CONFIG = ".feature-pipeline.json"
+MERGEABLE = "feature-delivery"
+MERGE = re.compile(r"\bgh\s+pr\s+merge\b(?:\s+(\S+))?")
 REQUIRED = ("base", "lanes_dir", "branch_prefix", "gates")
 
 
@@ -152,6 +160,9 @@ def run_gates(run_id):
 
 
 def approve(run_id):
+    kind = api("GET", f"/v1/workflows/runs/{run_id}").get("workflow_type")
+    if kind != MERGEABLE:
+        sys.exit(f"run {run_id} is a {kind} run; only {MERGEABLE} runs can be approved")
     meta, cfg = job(run_id)
     wt, base = meta["worktree"], cfg["base"]
     numstat = []
@@ -164,6 +175,45 @@ def approve(run_id):
                     dirty=bool(git(wt, "status", "--porcelain").strip()), scope=meta.get("scope"))
     step(run_id, "approve", "approve.decided", {"approval": result})
     return result
+
+
+def merge_allowed(meta, auto_merge):
+    """None when the run allows its PR to merge, else the reason it doesn't."""
+    decided = (meta.get("operator_decision") or {}).get("decision")
+    if decided == "approve":
+        return None
+    if decided:
+        return f"the person's decision was {decided!r}"
+    if (meta.get("approval") or {}).get("decision") == "auto":
+        return None if auto_merge else "approved as auto, but the repo's policy.auto_merge is off"
+    return "no approval recorded: run `fp approve`, and a person must approve when it says human"
+
+
+def guard(hook):
+    """PreToolUse hook. Exit 2 blocks the call and shows stderr to the agent."""
+    cmd = (hook.get("tool_input") or {}).get("command") or ""
+    m = MERGE.search(cmd) if hook.get("tool_name") == "Bash" else None
+    if not m:
+        return
+    pr = (m[1] or "").rstrip("/")
+    pr = "" if pr.startswith("-") else pr
+    cwd = os.path.realpath(hook.get("cwd") or ".")
+    try:
+        runs = api("GET", "/v1/workflows/runs?" + urllib.parse.urlencode({"workflow_type": MERGEABLE, "limit": 250}))["runs"]
+    except SystemExit as e:
+        sys.exit(print(f"merge blocked: can't read the run ledger ({e})", file=sys.stderr) or 2)
+    for r in runs:
+        meta = r.get("metadata") or {}
+        meta = json.loads(meta) if isinstance(meta, str) else meta
+        url = str(meta.get("pr") or "").rstrip("/")
+        wt = meta.get("worktree")
+        if (pr and url and (url == pr or url.endswith(f"/pull/{pr}"))) or (not pr and wt and os.path.realpath(wt) == cwd):
+            cfg = load_config(meta["repo"]) if meta.get("repo") else {}
+            why = merge_allowed(meta, cfg.get("policy", {}).get("auto_merge", False))
+            if why is None:
+                return
+            sys.exit(print(f"merge blocked for run {r['run_id']}: {why}", file=sys.stderr) or 2)
+    sys.exit(print("merge blocked: no feature-delivery run has this PR, so nothing approved it", file=sys.stderr) or 2)
 
 
 def selftest(repos):
@@ -203,6 +253,14 @@ def selftest(repos):
     assert d([(1, 0, f"docs/f{i}.md") for i in range(11)], [], ok, gates, cfg) == "human"
     assert d([(400, 0, "src/a.rs")], [], ok, gates, {**cfg, "policy": {"max_lines": 500}}) == "auto"
     assert d([(1, 1, CONFIG)], [], ok, gates, cfg) == "human"
+    assert merge_allowed({"approval": {"decision": "auto"}}, True) is None
+    assert merge_allowed({"approval": {"decision": "auto"}}, False)
+    assert merge_allowed({"approval": {"decision": "human"}}, True)
+    assert merge_allowed({"approval": {"decision": "human"}, "operator_decision": {"decision": "approve"}}, False) is None
+    assert merge_allowed({"approval": {"decision": "auto"}, "operator_decision": {"decision": "request_changes"}}, True)
+    assert merge_allowed({}, True)
+    assert MERGE.search("cd x && gh pr merge https://github.com/o/r/pull/7 --squash")[1] == "https://github.com/o/r/pull/7"
+    assert MERGE.search("gh pr merge --squash")[1] == "--squash" and not MERGE.search("gh pr view 7")
     for repo in repos:
         c = load_config(repo_root(repo))
         for rx in c.get("policy", {}).get("human_removed_lines", {}).values():
@@ -213,11 +271,16 @@ def selftest(repos):
 def main(argv):
     cmd, args = (argv[0], argv[1:]) if argv else ("help", [])
     if cmd == "new":
+        source = None
+        if "--from" in args:
+            i = args.index("--from")
+            source, args = args[i + 1], args[:i] + args[i + 2:]
         repo, title = repo_root(args[0]), args[1]
         request = args[2] if len(args) > 2 else title
         load_config(repo)
+        meta = {"stage": "intake", "title": title, "repo": repo, **({"from": source} if source else {})}
         run = api("POST", "/v1/workflows/runs", {"workflow_type": TYPE, "input": {"title": title, "request": request},
-                                                  "metadata": {"stage": "intake", "title": title, "repo": repo}})
+                                                  "metadata": meta})
         api("POST", f"/v1/workflows/runs/{run['run_id']}/events",
             {"event_type": "step.started", "step_name": "intake", "data": {}})
         print(run["run_id"])
@@ -245,6 +308,8 @@ def main(argv):
     elif cmd == "done":
         api("PATCH", f"/v1/workflows/runs/{args[0]}",
             {"status": "completed", "output": json.loads(args[1]) if len(args) > 1 else {}})
+    elif cmd == "guard":
+        guard(json.load(sys.stdin))
     elif cmd == "selftest":
         selftest(args)
     else:

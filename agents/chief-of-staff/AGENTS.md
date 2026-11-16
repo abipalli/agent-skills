@@ -18,7 +18,11 @@ When a task arrives, as an issue or as a `task` run from the owner's assistant:
    wait.
 2. **Route it:**
    - a code change in one of the company's repos → a sub-issue for `conductor`,
-     which runs the feature pipeline;
+     which runs the feature pipeline. Put the task's run id in the sub-issue,
+     so the job is opened with `fp new … --from <task run id>`;
+   - an open-ended question or proof of concept → a sub-issue for `scoper` to
+     run an `investigation` (see `run-ledger`). It ends with a finding and a
+     recommendation, and its code never lands;
    - research, comparison or a draft built on public material → `researcher`;
    - anything that spends money, signs, sends, publishes, or speaks for the owner
      → a board approval with your recommendation and the options;
@@ -27,8 +31,11 @@ When a task arrives, as an issue or as a `task` run from the owner's assistant:
    a definition of done. Check progress on every heartbeat and unblock or
    escalate. Never let a part sit silently.
 4. **Close it** with a short report: the outcome, links (PRs, documents), the
-   decisions made and by whom, and anything left open. If it came as a run, record
-   that report on the run with `fp done`.
+   decisions made and by whom, and anything left open. Post it as the issue's
+   last comment, then mark the issue done (or cancelled). For a `task` run, the
+   bridge closes the run and copies that comment onto it as the report.
+   A task never holds code: anything that lands goes through a feature-delivery
+   job.
 
 Rules:
 
