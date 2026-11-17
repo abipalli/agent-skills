@@ -190,7 +190,7 @@ def merge_allowed(meta, auto_merge):
     if decided:
         return f"the person's decision was {decided!r}"
     if (meta.get("approval") or {}).get("decision") == "auto":
-        return None if auto_merge else "approved as auto, but the repo's policy.auto_merge is off"
+        return None if auto_merge() else "approved as auto, but the repo's policy.auto_merge is off"
     return "no approval recorded: run `fp approve`, and a person must approve when it says human"
 
 
@@ -221,8 +221,8 @@ def guard(hook):
         url = str(meta.get("pr") or "").rstrip("/")
         wt = meta.get("worktree")
         if (pr and url and (url == pr or url.endswith(f"/pull/{pr}"))) or (not pr and wt and os.path.realpath(wt) == cwd):
-            cfg = load_config(meta["repo"]) if meta.get("repo") else {}
-            why = merge_allowed(meta, cfg.get("policy", {}).get("auto_merge", False))
+            why = merge_allowed(meta, lambda: (load_config(meta["repo"]) if meta.get("repo") else {})
+                                .get("policy", {}).get("auto_merge", False))
             if why is None:
                 return
             sys.exit(print(f"merge blocked for run {r['run_id']}: {why}", file=sys.stderr) or 2)
@@ -266,12 +266,13 @@ def selftest(repos):
     assert d([(1, 0, f"docs/f{i}.md") for i in range(11)], [], ok, gates, cfg) == "human"
     assert d([(400, 0, "src/a.rs")], [], ok, gates, {**cfg, "policy": {"max_lines": 500}}) == "auto"
     assert d([(1, 1, CONFIG)], [], ok, gates, cfg) == "human"
-    assert merge_allowed({"approval": {"decision": "auto"}}, True) is None
-    assert merge_allowed({"approval": {"decision": "auto"}}, False)
-    assert merge_allowed({"approval": {"decision": "human"}}, True)
-    assert merge_allowed({"approval": {"decision": "human"}, "operator_decision": {"decision": "approve"}}, False) is None
-    assert merge_allowed({"approval": {"decision": "auto"}, "operator_decision": {"decision": "request_changes"}}, True)
-    assert merge_allowed({}, True)
+    assert merge_allowed({"approval": {"decision": "auto"}}, lambda: True) is None
+    assert merge_allowed({"approval": {"decision": "auto"}}, lambda: False)
+    assert merge_allowed({"approval": {"decision": "human"}}, lambda: True)
+    assert merge_allowed({"approval": {"decision": "human"}, "operator_decision": {"decision": "approve"}}, lambda: False) is None
+    assert merge_allowed({"approval": {"decision": "auto"}, "operator_decision": {"decision": "request_changes"}}, lambda: True)
+    assert merge_allowed({}, lambda: True)
+    assert merge_allowed({"operator_decision": {"decision": "approve"}}, lambda: 1 / 0) is None
     assert MERGE.search("cd x && gh pr merge https://github.com/o/r/pull/7 --squash")[1] == "https://github.com/o/r/pull/7"
     assert MERGE.search("gh pr merge --squash")[1] == "--squash" and not MERGE.search("gh pr view 7")
     assert MERGE.search("GH_TOKEN=x /usr/bin/gh pr merge 7")[1] == "7"
@@ -325,7 +326,14 @@ def main(argv):
         api("PATCH", f"/v1/workflows/runs/{args[0]}",
             {"status": "completed", "output": json.loads(args[1]) if len(args) > 1 else {}})
     elif cmd == "guard":
-        guard(json.load(sys.stdin))
+        try:
+            guard(json.load(sys.stdin))
+        except SystemExit as e:
+            if e.code not in (None, 0, 2):
+                sys.exit(print(f"merge blocked: guard failed ({e})", file=sys.stderr) or 2)
+            raise
+        except Exception as e:
+            sys.exit(print(f"merge blocked: guard failed ({e!r})", file=sys.stderr) or 2)
     elif cmd == "selftest":
         selftest(args)
     else:
