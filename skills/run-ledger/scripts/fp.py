@@ -3,6 +3,9 @@
 
 Environment: FP_LITELLM_URL (default http://127.0.0.1:4000), FP_LITELLM_KEY or the key in
 ~/.config/feature-pipeline/key, FP_WORKFLOW_TYPE (default feature-delivery).
+`guard` also reads FP_GUARD_KEY_FILE (a key that can see every run, e.g. a proxy_admin_viewer
+key; runs it created never count) and FP_GUARD_TRUSTED (comma-separated created_by hashes; when
+set, only runs those keys created count).
 
 Repo config: .feature-pipeline.json at the root of the repo's main checkout.
 
@@ -22,6 +25,7 @@ Repo config: .feature-pipeline.json at the root of the repo's main checkout.
                                      person approved it (metadata.operator_decision)
   fp.py selftest [REPO_DIR...]       policy self-check + validate those repos' configs (no network)
 """
+import hashlib
 import json
 import os
 import re
@@ -198,11 +202,18 @@ def guard(hook):
     pr = (m[1] or "").rstrip("/")
     pr = "" if pr.startswith("-") else pr
     cwd = os.path.realpath(hook.get("cwd") or ".")
+    if os.environ.get("FP_GUARD_KEY_FILE"):
+        with open(os.environ["FP_GUARD_KEY_FILE"]) as f:
+            os.environ["FP_LITELLM_KEY"] = f.read().strip()
+    own = hashlib.sha256(os.environ.get("FP_LITELLM_KEY", "").encode()).hexdigest()
+    trusted = set(filter(None, os.environ.get("FP_GUARD_TRUSTED", "").split(",")))
     try:
         runs = api("GET", "/v1/workflows/runs?" + urllib.parse.urlencode({"workflow_type": MERGEABLE, "limit": 250}))["runs"]
     except SystemExit as e:
         sys.exit(print(f"merge blocked: can't read the run ledger ({e})", file=sys.stderr) or 2)
     for r in runs:
+        if r.get("created_by") == own or (trusted and r.get("created_by") not in trusted):
+            continue
         meta = r.get("metadata") or {}
         meta = json.loads(meta) if isinstance(meta, str) else meta
         url = str(meta.get("pr") or "").rstrip("/")
