@@ -40,7 +40,8 @@ TYPE = os.environ.get("FP_WORKFLOW_TYPE", "feature-delivery")
 KEY_FILE = os.path.expanduser("~/.config/feature-pipeline/key")
 CONFIG = ".feature-pipeline.json"
 MERGEABLE = "feature-delivery"
-MERGE = re.compile(r"\bgh\s+pr\s+merge\b(?:\s+(\S+))?")
+# gh in command position (start, after ; & | ( or a newline, past VAR=x prefixes), not inside text.
+MERGE = re.compile(r"(?:^|[;&|(\n])\s*(?:\w+=\S*\s+)*(?:\S*/)?gh\s+pr\s+merge\b(?:\s+([^\s'\";&|)]+))?")
 REQUIRED = ("base", "lanes_dir", "branch_prefix", "gates")
 
 
@@ -202,10 +203,11 @@ def guard(hook):
     pr = (m[1] or "").rstrip("/")
     pr = "" if pr.startswith("-") else pr
     cwd = os.path.realpath(hook.get("cwd") or ".")
+    own = None
     if os.environ.get("FP_GUARD_KEY_FILE"):
         with open(os.environ["FP_GUARD_KEY_FILE"]) as f:
             os.environ["FP_LITELLM_KEY"] = f.read().strip()
-    own = hashlib.sha256(os.environ.get("FP_LITELLM_KEY", "").encode()).hexdigest()
+        own = hashlib.sha256(os.environ["FP_LITELLM_KEY"].encode()).hexdigest()
     trusted = set(filter(None, os.environ.get("FP_GUARD_TRUSTED", "").split(",")))
     try:
         runs = api("GET", "/v1/workflows/runs?" + urllib.parse.urlencode({"workflow_type": MERGEABLE, "limit": 250}))["runs"]
@@ -272,6 +274,9 @@ def selftest(repos):
     assert merge_allowed({}, True)
     assert MERGE.search("cd x && gh pr merge https://github.com/o/r/pull/7 --squash")[1] == "https://github.com/o/r/pull/7"
     assert MERGE.search("gh pr merge --squash")[1] == "--squash" and not MERGE.search("gh pr view 7")
+    assert MERGE.search("GH_TOKEN=x /usr/bin/gh pr merge 7")[1] == "7"
+    assert MERGE.search("echo hi\ngh pr merge 7;")[1] == "7"
+    assert not MERGE.search("printf '{\"command\":\"gh pr merge 7\"}'") and not MERGE.search("echo 'run gh pr merge'")
     for repo in repos:
         c = load_config(repo_root(repo))
         for rx in c.get("policy", {}).get("human_removed_lines", {}).values():
