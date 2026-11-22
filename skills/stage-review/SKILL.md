@@ -64,7 +64,10 @@ findings. It must:
 - check each finding against the code at `head_sha`, marking it `confirmed`,
   `plausible` or `rejected` (with a reason);
 - keep severity honest. `critical` means data loss, a security hole or a broken
-  build; `high` means a real defect or a violation of the brief.
+  build; `high` means a real defect or a violation of the brief;
+- check the build record's `coverage`: each acceptance criterion's test exists and
+  tests that criterion. A missing or hollow one is a `high` finding. Do the same
+  for each `review_focus` entry.
 
 Record every surviving finding with `$FP note RUN_ID reviewer "<severity>
 <file:line> <claim>"`.

@@ -30,12 +30,17 @@ clear, it does not need the pipeline. Say so in `reasoning` and let the conducto
 
 ## The bar for `proceed`
 
-The brief must answer all four:
+The brief must answer all five:
 
 1. **What** to change: the observable behaviour after the change.
 2. **Where** to look: files, modules or entry points, confirmed in the code.
 3. **What pattern to copy:** an existing implementation of something similar.
 4. **How success is checked:** the tests or commands that prove it.
+5. **Which approach:** 2–3 viable approaches, each with its trade-off, and the one
+   picked with the reason. One obvious approach is fine; say why the others don't
+   fit. When the choice turns on intent, policy or ownership, it is a
+   `need_more_information` question, not your call. These become the PR's
+   "alternatives considered".
 
 A brief also rests on assumptions about the world outside the code:
 
@@ -49,7 +54,7 @@ after real work or real side effects.
 
 ## Verdicts
 
-- **`proceed`:** all four are answered from the item plus the code, and no
+- **`proceed`:** all five are answered from the item plus the code, and no
   load-bearing assumption is untested.
 - **`rescoped`:** the ask is valid but the wrong size or shape: too big for one
   change, or it hides a prerequisite. Give the smallest coherent slice that ships
@@ -91,7 +96,8 @@ A rerun of scope after the spike stage cannot return `spike`.
 
 ```json
 {"scope": {"status": "ok", "verdict": "proceed", "summary": "", "reasoning": "",
-  "brief": {"what": "", "where": [], "pattern": "", "success_check": []},
+  "brief": {"what": "", "where": [], "pattern": "", "success_check": [],
+            "approaches": [{"approach": "", "tradeoff": ""}], "chosen": "", "why": ""},
   "assumptions": [{"assumption": "", "tested": "yes|no|n/a", "evidence": ""}],
   "risk": "low|medium|high",
   "sensitive_areas": [],
