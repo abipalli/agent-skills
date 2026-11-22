@@ -90,6 +90,8 @@ Split the deduped candidate list into **at most 20 chunks** of roughly equal siz
 
 - A general-purpose subagent (in Claude Code, `subagent_type: general-purpose`)
 - One agent handles 1 to ~6 PRs depending on total candidate count.
+- On the `haiku` tier (Claude Code: `model: haiku`; elsewhere the runtime's
+  fastest model): classifying a PR from its timeline needs breadth, not depth.
 
 ### Agent prompt template
 

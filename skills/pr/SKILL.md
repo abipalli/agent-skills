@@ -1,7 +1,7 @@
 ---
 name: pr
-model: opus
-effort: high
+model: sonnet
+effort: medium
 metadata:
   calls: ["deep-code-review"]
 description: "Make a change and open a GitHub PR from a fork: sync the fork, branch, verify, push and open the PR upstream. Use for \"/pr\", \"create a PR\", \"open a pull request\"."
@@ -263,8 +263,8 @@ for under 40 lines including the template's checklists:
   review-tool round logs, and @-mentions (ping reviewers in Slack or a comment).
   Drop template subsections that do not apply instead of leaving empty headings.
 
-Draft the body with a Sonnet subagent (`model: sonnet`), not in the main
-session. Give it the commits, the diff stat, the verification results, the
+Draft the body in a subagent on the `sonnet` tier (the mid-tier model of
+whatever runtime you are in), not in the main session. Give it the commits, the diff stat, the verification results, the
 template, and the rules above, and ask it to trim to the rules. Check its draft
 against the rules and the diff (every claim true at the current head) before
 showing it or using it. Use the same pass when rewriting a body after a push.

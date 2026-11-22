@@ -38,7 +38,7 @@ marks a skill that other skills call: it runs at its caller's tier (see
 
 | Skill | Tier | Use it to |
 | :--- | :--- | :--- |
-| [`pr`](skills/pr/SKILL.md) | opus / high | make a change and open a PR from your fork |
+| [`pr`](skills/pr/SKILL.md) | sonnet / medium | make a change and open a PR from your fork |
 | [`merge`](skills/merge/SKILL.md) | inherits | approve and squash-merge a PR |
 | [`github-updates`](skills/github-updates/SKILL.md) | inherits | brief the PRs that need you across your repos |
 

@@ -9,7 +9,9 @@ metadata:
 
 Reviewers are read-only. When the runtime offers a choice, run the reviewers on a
 different model family than the builders, because the same family tends to miss
-its own mistakes. Record the result as the `review` stage record.
+its own mistakes. For example, if Claude built it, run the lanes through Codex or
+Cursor on an OpenAI or Gemini model, and run the validator on the `opus` tier of
+the family the lanes did not use. Record the result as the `review` stage record.
 
 ## 1. Snapshot
 

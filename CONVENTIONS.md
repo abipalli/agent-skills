@@ -97,9 +97,14 @@ be at least the caller's:
 | Tier | Use for |
 | :--- | :--- |
 | `opus` / `xhigh` | acceptance gates: the review that decides whether code ships |
-| `opus` / `high` | judgement-heavy authoring: PRs, re-reviews, skill design |
-| `sonnet` / `medium` | orchestration that delegates its hard parts to stronger callees |
+| `opus` / `high` | judgement-heavy authoring: re-reviews, skill design |
+| `sonnet` / `medium` | well-specified work or orchestration that delegates its hard parts to stronger callees: `pr`, `feature-pipeline` |
+| `haiku` | subagents doing bounded classification, such as `github-updates`' per-PR pass |
 | unset | callees |
+
+The tier names are Claude Code's model aliases, the only runtime that reads them
+from frontmatter. In other runtimes, map `opus` / `sonnet` / `haiku` to that
+runtime's strongest, mid-tier and fastest models in your own config.
 
 ## Agents
 
