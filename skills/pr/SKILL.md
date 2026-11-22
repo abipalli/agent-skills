@@ -248,7 +248,28 @@ if test -d .github; then
 fi
 ```
 
-Use a template when one clearly applies. Otherwise create a concise body with:
+Use a template when one clearly applies. Either way, keep the body short; aim
+for under 40 lines including the template's checklists:
+
+- **Summary:** one to three sentences on what the PR does. Lead with the change,
+  not the backstory. One clause of "why" at most.
+- **Details:** one bullet per change a reviewer must know about, a line or two
+  each. Name the identifiers; skip what the diff already shows. Put a stack or
+  dependency on one line (`Stack: #A → **this PR**`).
+- **Testing:** what passes at the current head, and what was not run and why.
+  No per-commit or per-review-round history; replace the section on each push
+  instead of appending to it.
+- Leave out: rationale essays, alternatives the reviewer did not ask about,
+  review-tool round logs, and @-mentions (ping reviewers in Slack or a comment).
+  Drop template subsections that do not apply instead of leaving empty headings.
+
+Draft the body with a Sonnet subagent (`model: sonnet`), not in the main
+session. Give it the commits, the diff stat, the verification results, the
+template, and the rules above, and ask it to trim to the rules. Check its draft
+against the rules and the diff (every claim true at the current head) before
+showing it or using it. Use the same pass when rewriting a body after a push.
+
+Without a template, use:
 
 ```markdown
 ## Summary
