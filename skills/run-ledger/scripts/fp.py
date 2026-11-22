@@ -25,15 +25,21 @@ Repo config: .feature-pipeline.json at the root of the repo's main checkout.
                                      person approved it (metadata.operator_decision)
   fp.py selftest [REPO_DIR...]       policy self-check + validate those repos' configs (no network)
 """
+import contextlib
+import datetime
+import fcntl
+import getpass
 import hashlib
 import json
 import os
 import re
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 
 BASE = os.environ.get("FP_LITELLM_URL", "http://127.0.0.1:4000")
 TYPE = os.environ.get("FP_WORKFLOW_TYPE", "feature-delivery")
@@ -43,6 +49,94 @@ MERGEABLE = "feature-delivery"
 # gh in command position (start, after ; & | ( or a newline, past VAR=x prefixes), not inside text.
 MERGE = re.compile(r"(?:^|[;&|(\n])\s*(?:\w+=\S*\s+)*(?:\S*/)?gh\s+pr\s+merge\b(?:\s+([^\s'\";&|)]+))?")
 REQUIRED = ("base", "lanes_dir", "branch_prefix", "gates")
+# File store: one JSON per run, shaped like LiteLLM's {run, events, messages} so a UI or a
+# later move to LiteLLM reads the same records.
+STORE_DIR = os.path.expanduser(os.environ.get("FP_STORE_DIR", "~/.local/state/feature-pipeline/runs"))
+STATUS_BY_EVENT = {"step.started": "running", "hook.waiting": "paused",
+                   "hook.received": "running", "step.failed": "failed"}
+
+
+def use_file_store():
+    """FP_STORE=file, or FP_STORE unset and no LiteLLM key configured (FP_STORE=litellm forces LiteLLM)."""
+    store = os.environ.get("FP_STORE")
+    if store:
+        return store == "file"
+    return not (os.environ.get("FP_LITELLM_KEY") or os.path.exists(KEY_FILE))
+
+
+def file_api(method, path, body=None):
+    """Serve the LiteLLM routes api() uses from STORE_DIR, returning the same JSON shapes.
+
+    POST /v1/workflows/runs, GET /v1/workflows/runs?workflow_type&status&limit,
+    GET|PATCH /v1/workflows/runs/ID, GET|POST /v1/workflows/runs/ID/events|messages.
+    Unlike LiteLLM, PATCH merges metadata instead of replacing it, so step() can send a delta.
+    Each run file is updated under an exclusive flock and replaced atomically, so parallel
+    builders can step the same run. Runs carry created_by "file:<user>" (never None), so
+    guard's own-key check can't skip them.
+    """
+    url = urllib.parse.urlsplit(path)
+    parts = url.path.strip("/").split("/")[3:]  # after v1/workflows/runs
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    os.makedirs(STORE_DIR, exist_ok=True)
+    if not parts:
+        if method == "POST":
+            run = {"run_id": uuid.uuid4().hex, "workflow_type": body.get("workflow_type"), "status": "pending",
+                   "input": body.get("input") or {}, "output": None, "metadata": body.get("metadata") or {},
+                   "created_by": "file:" + getpass.getuser(), "created_at": now, "updated_at": now}
+            with _run_file(run["run_id"], create=True) as rec:
+                rec.update(run=run, events=[], messages=[])
+            return run
+        q = urllib.parse.parse_qs(url.query)
+        kind, statuses = q.get("workflow_type", [None])[0], set(",".join(q.get("status", [])).split(",")) - {""}
+        runs = []
+        for name in os.listdir(STORE_DIR):
+            if name.endswith(".json"):
+                with open(os.path.join(STORE_DIR, name)) as f:
+                    run = json.load(f)["run"]
+                if (not kind or run["workflow_type"] == kind) and (not statuses or run["status"] in statuses):
+                    runs.append(run)
+        runs.sort(key=lambda r: r["created_at"], reverse=True)
+        return {"runs": runs[: int(q.get("limit", ["100"])[0])]}
+    run_id, sub = parts[0], (parts[1] if len(parts) > 1 else None)
+    with _run_file(run_id) as rec:
+        run = rec["run"]
+        if sub is None and method == "GET":
+            return run
+        if sub is None and method == "PATCH":
+            run.update({k: body[k] for k in ("status", "output") if k in body}, updated_at=now)
+            run["metadata"].update(body.get("metadata") or {})
+            return run
+        if method == "GET":
+            return {sub: rec[sub]}
+        if sub == "events":
+            event = {"event_id": uuid.uuid4().hex, "created_at": now, **body}
+            rec["events"].append(event)
+            run.update(status=STATUS_BY_EVENT.get(body.get("event_type"), run["status"]), updated_at=now)
+            return event
+        message = {"message_id": uuid.uuid4().hex, "created_at": now, **body}
+        rec["messages"].append(message)
+        return message
+
+
+@contextlib.contextmanager
+def _run_file(run_id, create=False):
+    """Yield a run's record under an exclusive lock; write it back atomically on success."""
+    if not re.fullmatch(r"[0-9a-f]{32}", run_id):
+        sys.exit(f"bad run id {run_id!r}")
+    path = os.path.join(STORE_DIR, run_id + ".json")
+    if not create and not os.path.exists(path):
+        sys.exit(f"no run {run_id} in {STORE_DIR}")
+    with open(path + ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        rec = {}
+        if not create:
+            with open(path) as f:
+                rec = json.load(f)
+        yield rec
+        tmp = path + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(rec, f, indent=2)
+        os.replace(tmp, path)
 
 
 def repo_root(path):
@@ -67,7 +161,9 @@ def load_config(root):
 
 
 def api(method, path, body=None):
-    key = os.environ.get("FP_LITELLM_KEY") or open(KEY_FILE).read().strip()
+    if use_file_store():
+        return file_api(method, path, body)
+    key =os.environ.get("FP_LITELLM_KEY") or open(KEY_FILE).read().strip()
     req = urllib.request.Request(
         BASE + path, method=method,
         data=None if body is None else json.dumps(body).encode(),
@@ -95,7 +191,10 @@ def job(run_id):
 def step(run_id, stage, event, data=None):
     data = data or {}
     api("POST", f"/v1/workflows/runs/{run_id}/events", {"event_type": event, "step_name": stage, "data": data})
-    api("PATCH", f"/v1/workflows/runs/{run_id}", {"metadata": {**run_meta(run_id), **data, "stage": stage}})
+    patch = {**data, "stage": stage}
+    # The file store merges metadata under its lock; LiteLLM replaces it, so send the whole object.
+    api("PATCH", f"/v1/workflows/runs/{run_id}",
+        {"metadata": patch if use_file_store() else {**run_meta(run_id), **patch}})
 
 
 def decide(numstat, removed, review, gates, cfg, dirty=False, scope=None):
@@ -209,6 +308,9 @@ def guard(hook):
             os.environ["FP_LITELLM_KEY"] = f.read().strip()
         own = hashlib.sha256(os.environ["FP_LITELLM_KEY"].encode()).hexdigest()
     trusted = set(filter(None, os.environ.get("FP_GUARD_TRUSTED", "").split(",")))
+    if trusted and use_file_store():
+        sys.exit(print("merge blocked: FP_GUARD_TRUSTED is set, but the file store can't prove who wrote a run",
+                       file=sys.stderr) or 2)
     try:
         runs = api("GET", "/v1/workflows/runs?" + urllib.parse.urlencode({"workflow_type": MERGEABLE, "limit": 250}))["runs"]
     except SystemExit as e:
@@ -282,7 +384,36 @@ def selftest(repos):
         c = load_config(repo_root(repo))
         for rx in c.get("policy", {}).get("human_removed_lines", {}).values():
             re.compile(rx)
+    selftest_file_store()
     print(f"selftest ok ({len(repos)} repo config(s) valid)")
+
+
+def selftest_file_store():
+    """Round-trip a run through the file store in a temp dir: create, pause, resume, finish, list."""
+    global STORE_DIR
+    saved = STORE_DIR
+    with tempfile.TemporaryDirectory() as STORE_DIR:
+        f = file_api
+        rid = f("POST", "/v1/workflows/runs", {"workflow_type": "t", "metadata": {"stage": "intake"}})["run_id"]
+        assert f("GET", f"/v1/workflows/runs/{rid}")["created_by"].startswith("file:")
+        for event, status in (("step.started", "running"), ("hook.waiting", "paused"), ("note", "paused"),
+                              ("hook.received", "running"), ("step.failed", "failed")):
+            f("POST", f"/v1/workflows/runs/{rid}/events", {"event_type": event, "step_name": "scope"})
+            assert f("GET", f"/v1/workflows/runs/{rid}")["status"] == status, event
+        f("PATCH", f"/v1/workflows/runs/{rid}", {"metadata": {"stage": "scope", "x": 1}})
+        f("PATCH", f"/v1/workflows/runs/{rid}", {"metadata": {"y": 2}})
+        assert f("GET", f"/v1/workflows/runs/{rid}")["metadata"] == {"stage": "scope", "x": 1, "y": 2}
+        f("POST", f"/v1/workflows/runs/{rid}/messages", {"role": "scoper", "content": "q?"})
+        f("PATCH", f"/v1/workflows/runs/{rid}", {"status": "completed", "output": {"ok": True}})
+        run = f("GET", f"/v1/workflows/runs/{rid}")
+        assert (run["status"], run["output"], run["metadata"]["x"]) == ("completed", {"ok": True}, 1)
+        assert len(f("GET", f"/v1/workflows/runs/{rid}/events")["events"]) == 5
+        assert f("GET", f"/v1/workflows/runs/{rid}/messages")["messages"][0]["content"] == "q?"
+        f("POST", "/v1/workflows/runs", {"workflow_type": "other"})
+        assert [r["run_id"] for r in f("GET", "/v1/workflows/runs?workflow_type=t&status=completed")["runs"]] == [rid]
+        assert f("GET", "/v1/workflows/runs?workflow_type=t&status=paused")["runs"] == []
+        assert len(f("GET", "/v1/workflows/runs?limit=1")["runs"]) == 1
+    STORE_DIR = saved
 
 
 def main(argv):
