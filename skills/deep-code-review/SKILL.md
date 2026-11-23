@@ -4,7 +4,7 @@ description: "Deep multi-agent review of a diff, branch or GitHub PR: does it so
 model: opus
 effort: xhigh
 metadata:
-  calls: ["ponytail-review", "rust-review", "rust-best-practices"]
+  calls: ["ponytail-review", "rust-review"]
 ---
 
 # Deep Code Review
@@ -176,21 +176,6 @@ Always-run dimensions:
   async/concurrency idioms, and Cargo hygiene. Keep it calibrated as review
   feedback: surface only findings that materially improve the changed Rust code
   or its API, and do not turn formatting or personal style into noise.
-- **Apollo Rust best-practices pass, when applicable**: for the same Rust change
-  triggers, run a separate dedicated dimension using the installed
-  `rust-best-practices` skill. Do not skip this dimension because `rust-review`
-  already ran; the Apollo skill adds a handbook-backed check of borrowing and
-  cloning, Clippy policy, performance, error handling, tests, generics and
-  dispatch, type-state opportunities, documentation, and pointer safety. Follow
-  the skill's instruction to read every chapter relevant to the changed code in
-  parallel before reviewing. Run targeted Cargo, Clippy, or test commands when
-  they are feasible and appropriate for the repository. Treat the handbook as
-  review guidance rather than an override: the repository's MSRV, lint setup,
-  dependency policy, public API constraints, and established local conventions
-  win when they conflict. Return category-grouped, severity-ranked findings in
-  the shared agent format, and report no finding when the changed Rust already
-  follows the relevant guidance. If the skill is unavailable, say so explicitly
-  and continue the other review dimensions rather than pretending this pass ran.
 
 Every always-run dimension must return a findings list in the shared agent
 format below. The list can be empty. Findings from all dimensions use the same
@@ -443,10 +428,6 @@ Combine agent results into a final review:
   and safe: the code, dependency, or script can go and a named existing helper,
   standard API, or framework covers the behavior. Deduplicate them against
   implementation-quality and code-smell findings.
-- Preserve Apollo Rust best-practices findings when they identify a concrete
-  problem in changed Rust and fit the repository's toolchain and conventions.
-  Deduplicate them against `rust-review`, code-smell, performance, test, and
-  correctness findings rather than reporting the same concern twice.
 - Preserve documentation and code-comment findings when changed prose is
   needlessly long, indirect, vague, jargon-heavy, generated-sounding, or merely
   narrates the code. Prefer Suggestions for readability-only cleanup, or `nit:`
@@ -541,8 +522,7 @@ attention."]
 - Always assess changed documentation and code comments for concise, natural,
   plain-language writing; replace vague stock phrasing with concrete behavior
   and avoid needless jargon.
-- For Rust changes, run both the `rust-review` and `rust-best-practices` skills
-  and deduplicate their findings.
+- For Rust changes, run the `rust-review` lane.
 - Always run the `ponytail-review` over-engineering pass; ask whether each
   changed line needs to exist.
 - Read surrounding code before flagging a pattern.
