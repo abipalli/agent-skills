@@ -1,6 +1,8 @@
 ---
 name: rust-review
 description: "Rust lane for a code review: idioms, types that make invalid states unrepresentable, error enums, visibility, cfg boundaries, and std or crate alternatives. Use for \"rust review\" or inside a broader review of .rs changes."
+metadata:
+  calls: ["rust-best-practices"]
 ---
 
 # Rust Review
@@ -56,6 +58,9 @@ Before commenting:
   imports, re-exports, implementations, call sites, and tests. Determine whether
   each condition belongs on a whole module, a coherent item or implementation,
   or only a small local branch.
+- Load `rust-best-practices` and read the handbook chapters that match the changed code: borrowing,
+  Clippy policy, performance, errors, tests, dispatch, type state, docs,
+  pointers. The repository's MSRV, lint setup and conventions win on conflict.
 - Run formatting or tests only when the user asks for fixes or when the repo
   clearly documents a cheap Rust verification command.
 

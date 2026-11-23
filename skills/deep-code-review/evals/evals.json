@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Review the local Rust diff in evals/fixtures/code-smells.diff. Assume it compiles and all tests pass, and do not invent behavior outside the diff. There is no demonstrated runtime bug. Produce the normal deep-code-review output and decide what feedback is still worth reporting.",
-      "expected_output": "The review puts concrete code smells under Requires Review because their refactor needs human judgment, retains severity, runs the Apollo rust-best-practices pass because the diff changes Rust, and flags the unconditional Clippy suppression with a repository-compatible cleanup direction. It does not create a separate code-smell section.",
+      "expected_output": "The review puts concrete code smells under Requires Review because their refactor needs human judgment, retains severity, runs the rust-review lane, with the rust-best-practices handbook, because the diff changes Rust, and flags the unconditional Clippy suppression with a repository-compatible cleanup direction. It does not create a separate code-smell section.",
       "files": [
         "evals/fixtures/code-smells.diff"
       ],
@@ -17,7 +17,7 @@
         "Includes the exact Does not require review and Requires Review category headings and does not create a third finding category.",
         "Writes each smell finding as complete natural sentences that lead with the concrete code and avoid a forced Code smell: label or report-style Issue/Impact/Fix labels.",
         "Writes all findings in ASD-STE100 Simplified Technical English while keeping exact Rust identifiers.",
-        "Applies the rust-best-practices guidance to the Rust diff and reports the unconditional #[allow(clippy::too_many_lines)], recommending removal through cleanup or a justified #[expect] when the repository toolchain supports it."
+        "Applies the rust-review lane and its rust-best-practices handbook to the Rust diff and reports the unconditional #[allow(clippy::too_many_lines)], recommending removal through cleanup or a justified #[expect] when the repository toolchain supports it."
       ]
     },
     {
@@ -31,7 +31,7 @@
         "Does not create a Code Quality / Smells section or another dimension-specific section.",
         "Does not invent maintainability findings for a mechanical rename.",
         "Keeps the verdict calibrated to the absence of substantive issues.",
-        "Does not invent a rust-best-practices finding for the behavior-preserving Rust rename.",
+        "Does not invent a Rust-lane finding for the behavior-preserving Rust rename.",
         "Does not create a Documentation / Comment Quality section.",
         "Does not invent a prose concern when no documentation or code comments changed.",
         "Includes the exact Does not require review and Requires Review category headings and says No findings in both.",
