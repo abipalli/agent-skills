@@ -4,7 +4,7 @@ model: sonnet
 effort: medium
 description: "Take one work item from intake to an approved PR: scope, optional spikes, build in worktrees, a review panel and an approval gate, with every stage recorded on a durable run. Use for \"feature-pipeline\", \"pipeline this issue\", \"resume job <id>\"."
 metadata:
-  calls: ["run-ledger", "stage-intake", "stage-scope", "stage-spike", "stage-build", "stage-review", "stage-approve"]
+  calls: ["run-ledger", "work-evaluation", "stage-intake", "stage-scope", "stage-spike", "stage-build", "stage-review", "stage-approve"]
   pipeline:
     stages: [
       {"id": "intake", "agent": "scoper", "skill": "stage-intake", "verdicts": ["ok", "failed"]},
