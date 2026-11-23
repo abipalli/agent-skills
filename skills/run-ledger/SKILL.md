@@ -24,6 +24,7 @@ $FP note RUN_ID <role> "<text>"            # a message: question, answer, review
 $FP gates RUN_ID                           # run the repo's gates in the run's worktree
 $FP approve RUN_ID                         # repo policy → exit 0 auto, exit 3 human
 $FP done RUN_ID '<json output>'            # mark completed
+$FP config <repo-dir>                      # effective repo config (defaults when no file)
 $FP selftest [repo-dir...]                 # policy self-check plus repo config check, no network
 ```
 
@@ -69,14 +70,17 @@ on the base branch.
 
 ## Prerequisites
 
+Nothing by default: with no LiteLLM key configured, runs are JSON files under
+`~/.local/state/feature-pipeline/runs` (`FP_STORE_DIR`). To share runs with a UI,
+use LiteLLM instead (`FP_STORE=litellm` forces it):
+
 - A LiteLLM proxy (v1.81 or later) with workflow runs. Set `FP_LITELLM_URL`;
   the default is `http://127.0.0.1:4000`.
 - A virtual key in `FP_LITELLM_KEY` or `~/.config/feature-pipeline/key`. The key
   only needs the workflow-run routes. LiteLLM shows a run only to the key that
   created it, unless the key belongs to an admin user, so a UI that should see
   every client's runs needs such a key.
-- `.feature-pipeline.json` at the root of the target repo's main checkout (see
-  "Repo config").
+- Optionally, `.feature-pipeline.json` in the target repo (see "Repo config").
 
 ## Events
 
@@ -134,6 +138,10 @@ $FP step RUN_ID scope step.completed '{"scope": {
 
 ## Repo config
 
+Optional. Without it, `fp.py` uses defaults: base = the remote's default branch (`origin/HEAD`), `lanes_dir`
+`../<repo>-lanes`, `branch_prefix` `fp/`, no gates, and every approval goes to a
+person. `$FP config <repo-dir>` prints the effective values; stages read them there.
+
 `.feature-pipeline.json` lives at the root of the repo's **main checkout**. `fp.py`
 always reads it from there, never from the branch being approved, so a change
 cannot loosen its own rules. A diff that touches it always goes to a human.
@@ -156,7 +164,7 @@ cannot loosen its own rules. A diff that touches it always goes to a human.
 }
 ```
 
-- `base`, `lanes_dir`, `branch_prefix` and `gates` are required. `lanes_dir` is
+- A file must set `base`, `lanes_dir`, `branch_prefix` and `gates`. `lanes_dir` is
   relative to the main checkout.
 - Policy defaults: 300 lines, 10 files, 3 review rounds, `auto_merge: false`, and
   no path rules.

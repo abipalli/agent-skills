@@ -7,18 +7,19 @@ Environment: FP_LITELLM_URL (default http://127.0.0.1:4000), FP_LITELLM_KEY or t
 key; runs it created never count) and FP_GUARD_TRUSTED (comma-separated created_by hashes; when
 set, only runs those keys created count).
 
-Repo config: .feature-pipeline.json at the root of the repo's main checkout.
+Repo config: .feature-pipeline.json at the root of the repo's main checkout; optional (see load_config).
 
   fp.py new REPO_DIR TITLE [REQUEST] [--from RUN_ID] [--stop-after STAGE] [--route STATE]
                                      create a job for the repo containing REPO_DIR, print its run_id;
                                      --from links the task or investigation run it came from;
                                      --stop-after STAGE refuses `step.started` for later stages
                                      (scope also allows spike)
-                                     --route STATE opens a direct, backlogged or dropped task (no repo config needed);
+                                     --route STATE opens a direct, backlogged or dropped task;
                                      --escalate (with --from REF) marks the run as escalated from direct work
   fp.py route RUN_ID STATE [REASON]  change the run's route (pipelined|direct|backlogged|dropped), log route.changed
   fp.py list [STATUS[,STATUS]]       list jobs (pending,running,paused,completed,failed)
   fp.py show RUN_ID                  run, metadata, events, messages
+  fp.py config REPO_DIR              the repo's effective config (defaults when it has no file)
   fp.py step RUN_ID STAGE EVENT [JSON]   append event, merge {stage, **JSON} into metadata
   fp.py note RUN_ID ROLE TEXT        append a message (review comments, questions, answers)
   fp.py gates RUN_ID                 run the repo's gate commands in the job worktree, record results
@@ -154,9 +155,15 @@ def repo_root(path):
 
 
 def load_config(root):
+    """The repo's config, or defaults when it has none. A defaulted repo never auto-approves."""
     path = os.path.join(root, CONFIG)
     if not os.path.exists(path):
-        sys.exit(f"no {CONFIG} at {root}")
+        try:
+            base = git(root, "rev-parse", "--abbrev-ref", "origin/HEAD").strip()
+        except subprocess.CalledProcessError:
+            sys.exit(f"{root}: origin/HEAD is unset; run `git remote set-head origin -a` or add {CONFIG}")
+        return {"base": base, "lanes_dir": f"../{os.path.basename(root)}-lanes",
+                "branch_prefix": "fp/", "gates": {}, "defaulted": True}
     with open(path) as f:
         cfg = json.load(f)
     missing = [k for k in REQUIRED if k not in cfg]
@@ -251,6 +258,8 @@ def decide(numstat, removed, review, gates, cfg, dirty=False, scope=None):
         why.append(f"review: {review.get('open_medium', '?')} medium neither fixed nor deferred with a reason")
     if review.get("rounds", max_rounds + 1) > max_rounds:
         why.append(f"review took {review.get('rounds', '?')} rounds (cap {max_rounds})")
+    if cfg.get("defaulted"):
+        why.append(f"no {CONFIG}: a person reviews repos without a policy")
     bad = [g for g in cfg["gates"] if gates.get(g) != "pass"]
     if bad:
         why.append("gates not passing: " + ", ".join(bad))
@@ -309,6 +318,14 @@ def approve(run_id):
     return result
 
 
+def repo_auto_merge(repo):
+    """policy.auto_merge, or False when the config is missing or unreadable (the guard fails closed)."""
+    try:
+        return bool(repo and load_config(repo).get("policy", {}).get("auto_merge", False))
+    except (SystemExit, ValueError):
+        return False
+
+
 def merge_allowed(meta, auto_merge):
     """None when the run allows its PR to merge, else the reason it doesn't."""
     decided = (meta.get("operator_decision") or {}).get("decision")
@@ -351,8 +368,7 @@ def guard(hook):
         url = str(meta.get("pr") or "").rstrip("/")
         wt = meta.get("worktree")
         if (pr and url and (url == pr or url.endswith(f"/pull/{pr}"))) or (not pr and wt and os.path.realpath(wt) == cwd):
-            why = merge_allowed(meta, lambda: (load_config(meta["repo"]) if meta.get("repo") else {})
-                                .get("policy", {}).get("auto_merge", False))
+            why = merge_allowed(meta, lambda: repo_auto_merge(meta.get("repo")))
             if why is None:
                 return
             sys.exit(print(f"merge blocked for run {r['run_id']}: {why}", file=sys.stderr) or 2)
@@ -373,6 +389,13 @@ def selftest(repos):
     low = {"risk": "low", "verdict": "proceed", "sensitive_areas": [], "spikes": []}
     d = lambda *a, **k: decide(*a, **{"scope": low, **k})["decision"]
     assert d(small, [], ok, gates, cfg) == "auto"
+    with tempfile.TemporaryDirectory() as t:
+        git(t, "init", "-q", "-b", "trunk"); git(t, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "x")
+        git(t, "update-ref", "refs/remotes/origin/trunk", "HEAD")
+        git(t, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/trunk")
+        dflt = load_config(t)
+    assert d(small, [], ok, {}, dflt) == "human" and dflt["base"] == "origin/trunk", dflt
+    assert repo_auto_merge(None) is False
     assert d([], [], ok, gates, cfg) == "human"
     assert d(small, [], ok, gates, cfg, dirty=True) == "human"
     assert d(small, [], {**ok, "high": 1}, gates, cfg) == "human"
@@ -408,12 +431,17 @@ def selftest(repos):
     assert MERGE.search("GH_TOKEN=x /usr/bin/gh pr merge 7")[1] == "7"
     assert MERGE.search("echo hi\ngh pr merge 7;")[1] == "7"
     assert not MERGE.search("printf '{\"command\":\"gh pr merge 7\"}'") and not MERGE.search("echo 'run gh pr merge'")
+    checked = 0
     for repo in repos:
         c = load_config(repo_root(repo))
+        if c.get("defaulted"):
+            print(f"{repo}: no {CONFIG}, defaults apply (base {c['base']}, human approval)")
+            continue
+        checked += 1
         for rx in c.get("policy", {}).get("human_removed_lines", {}).values():
             re.compile(rx)
     selftest_file_store()
-    print(f"selftest ok ({len(repos)} repo config(s) valid)")
+    print(f"selftest ok ({checked} repo config(s) valid)")
 
 
 def selftest_file_store():
@@ -483,7 +511,7 @@ def main(argv):
         if to == "pipelined":
             repo = repo_root(args[0])
             load_config(repo)
-        else:  # direct, backlogged and dropped tasks need no repo config; the repo is optional
+        else:  # direct, backlogged and dropped tasks may have no repo
             try:
                 repo = repo_root(args[0])
             except SystemExit:
@@ -508,6 +536,8 @@ def main(argv):
             m = r.get("metadata") or {}
             m = json.loads(m) if isinstance(m, str) else m
             print(f"{r['run_id']}\t{r['status']}\t{os.path.basename(m.get('repo') or '-')}\t{m.get('stage', '?')}\t{m.get('route', '-')}\t{m.get('title', '')}")
+    elif cmd == "config":
+        print(json.dumps(load_config(repo_root(args[0])), indent=2))
     elif cmd == "show":
         rid = args[0]
         print(json.dumps({"run": api("GET", f"/v1/workflows/runs/{rid}"),
