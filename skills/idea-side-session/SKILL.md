@@ -29,7 +29,7 @@ $FP step RUN_ID intake step.completed '{"intake": {...}, "evaluation": {"value":
 ```
 
 An idea with no repo yet cannot open a pipelined run. Record it
-as a plan doc (`docs/plans/<idea>.md`) or a Machina `work_item` with the same vector, and say so.
+as a plan doc (`docs/plans/<idea>.md`) or a tracker work item with the same vector, and say so.
 
 ## 3. Side session and brief
 
