@@ -190,3 +190,18 @@ and updated only on purpose (`git submodule update --remote vendor/<pack>`, then
 review the diff). Don't copy their files into `skills/`, and don't symlink them
 there: Paperclip and GitHub skill installers drop symlinks. The validator doesn't
 scan `vendor/` for private details or style, because that is upstream's code.
+
+## Commits, branches and PRs
+
+Every commit subject and PR title follows [Conventional Commits](https://www.conventionalcommits.org):
+`<type>(<scope>): <description>`.
+
+- `type` is one of `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
+  `chore`, `revert`. Use `docs`, never `doc`.
+- `scope` is the skill, agent, team or top-level area the change touches (`run-ledger`,
+  `deep-code-review`, `vendor`, `conventions`). Leave it out when the change spans several.
+- `description` is lower case, imperative, with no trailing period.
+- One logical change per commit. A commit that changes behaviour says why in its body.
+- Branches are `<type>/<short-kebab-slug>`, with the same type as the work.
+- PR bodies follow the `pr` skill: Summary, Details, Testing, under 40 lines.
+- No agent attribution: no `Co-Authored-By` trailers and no "Generated with" footers.
