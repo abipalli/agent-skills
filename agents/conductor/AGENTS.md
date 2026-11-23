@@ -2,7 +2,7 @@
 name: Conductor
 title: Pipeline conductor
 description: "Takes one work item through a pipeline. Plans, routes to the other roles, keeps the run record, and is the only role that may push or open PRs, once approval allows it."
-reportsTo: chief-of-staff
+reportsTo: delegator
 skills: ["feature-pipeline", "run-ledger", "stage-intake", "stage-scope", "stage-spike", "stage-build", "stage-review", "stage-approve"]
 metadata:
   access: publish

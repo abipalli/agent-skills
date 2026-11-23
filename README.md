@@ -84,7 +84,7 @@ company run by agents, for example in Paperclip:
 
 | Agent | Does |
 | :--- | :--- |
-| [`chief-of-staff`](agents/chief-of-staff/AGENTS.md) | takes each delegated task, plans it, assigns the parts, follows up, and brings decisions to a person |
+| [`delegator`](agents/delegator/AGENTS.md) | takes each delegated task, plans it, assigns the parts, follows up, and brings decisions to a person |
 | [`researcher`](agents/researcher/AGENTS.md) | researches and drafts from public material on low-cost models; never sees personal data |
 | [`conductor`](agents/conductor/AGENTS.md) | runs the feature pipeline for code changes |
 
