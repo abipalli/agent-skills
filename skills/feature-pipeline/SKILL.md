@@ -62,6 +62,50 @@ Every stage:
 3. ends with `step.failed` and a reason when it could not run. Never skip a stage
    silently.
 
+## Task routing
+
+Every task is triaged before it gets here, by the routing rules in `work-evaluation`. This skill
+owns the pipelined state and the edges that leave and enter it.
+
+```mermaid
+stateDiagram-v2
+    [*] --> received
+    received --> triaged
+    triaged --> dropped: low value, nothing depends on it
+    triaged --> backlogged: context = no
+    triaged --> pipelined: PR on a shared repo, risk or complexity ≥ medium,<br/>unclear criteria, or needs independent review
+    triaged --> direct: everything else
+    triaged --> clarify: one question needed
+    clarify --> triaged: answered
+    backlogged --> triaged: context axis changed
+    direct --> pipelined: escalate (needs a PR, sensitive path, spreads past one file)
+    pipelined --> direct: demote (scope verdict: trivial)
+    state pipelined {
+        [*] --> intake
+        intake --> scope: ok
+        scope --> spike: spike
+        spike --> scope: validated / partially_validated / failed
+        scope --> build: proceed / rescoped
+        scope --> [*]: defer / need_more_information (paused)
+        build --> review: built / partially_built
+        review --> build: changes_requested
+        review --> approve: clean
+        approve --> [*]: approved / changes_requested / rejected
+    }
+```
+
+- **`stop_after`:** `fp new ... --stop-after <stage>` (`scope`, `build`, `review` or `approve`). The
+  conductor runs that stage, then stops and waits for the human; `fp step ... step.started`
+  refuses a later one.
+- **Escalate** (direct → pipelined): when direct work turns out to need a PR, hits a sensitive
+  path, or spreads past one file, stop and run `$FP new <repo-dir> "<title>" "<what was done so
+  far, as the request>" --from <where the work started> --escalate`. The new run's intake is that work.
+- **Demote** (pipelined → direct): when scope finds the task trivial, run `$FP route RUN_ID direct
+  "<why>"`, do the work directly and `$FP done` the run.
+- **Backlogged:** `$FP route RUN_ID backlogged "<missing context>"`, then pause with `hook.waiting`. Re-score
+  when the context axis changes; a run that now qualifies goes back through triage.
+- Every route change is a `route.changed` event on the run.
+
 ## Routing
 
 - **`need_more_information`:** ask the human the scoper's questions.

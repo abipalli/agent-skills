@@ -13,7 +13,8 @@ returns as the `intake` stage record.
 ## Open the run
 
 If you know the target repo, run `$FP new <repo-dir> "<short title>" "<the request
-verbatim>"` before you dispatch. If you don't, let the scoper find the repo first,
+verbatim>"` before you dispatch. Add `--stop-after <stage>` when the caller wants the run to stop
+early, and `--from <ref> --escalate` when direct work is moving onto the pipeline. If you don't, let the scoper find the repo first,
 then open the run. Report the RUN_ID to the user.
 
 ## Fetch (read-only)

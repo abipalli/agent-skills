@@ -14,7 +14,9 @@ Python's standard library only.
 FP=<this skill's directory>/scripts/fp.py
 $FP new <repo-dir> "<title>" "<request>" [--from RUN_ID] [--stop-after <stage>]
                                            # → RUN_ID; --from links a task or investigation;
-                                           # --stop-after makes step.started refuse later stages
+                                           # --stop-after makes step.started refuse later stages;
+                                           # --escalate (needs --from) marks direct work moving onto the pipeline
+$FP route RUN_ID <state> "<reason>"        # pipelined|direct|backlogged|dropped; logs route.changed
 $FP list [paused|running|completed|...]    # RUN_ID  status  repo  stage  title
 $FP show RUN_ID                            # run, metadata, events, messages
 $FP step RUN_ID <stage> <event> '<json>'   # append an event; merge the JSON into metadata
@@ -93,6 +95,14 @@ for example the Paperclip bridge. Writing the answer back is two steps: append
 `hook.received`, and set `metadata.operator_decision` to
 `{decision, note, via, at}`. A conductor resuming a paused run reads that field
 first.
+
+Routing state lives in metadata and events, so it can be queried:
+
+- `metadata.route`: `pipelined` (set by `new`), `direct`, `backlogged` or `dropped`. `fp list` shows it.
+- `metadata.stop_after`: a stage id; `step.started` refuses any later stage (`scope` also allows `spike`).
+- `route.changed` event, data `{from, to, reason}`, written by `fp route`. With `new --escalate` it also
+  carries `source`, the `--from` reference. `fp route` refuses moves the state machine in
+  `feature-pipeline` does not allow.
 
 ## Stage records
 

@@ -22,6 +22,12 @@ Before deciding, check whether other work already owns these files or this goal:
 If another lane, PR, plan or run owns the work, the verdict is `defer`, with
 `align_with` naming that work.
 
+## Trivial tasks
+
+If the task needs no PR, touches one file outside any sensitive path, and its acceptance criteria are
+clear, it does not need the pipeline. Say so in `reasoning` and let the conductor demote the run
+(`fp route RUN_ID direct`). The verdict is still `proceed`.
+
 ## The bar for `proceed`
 
 The brief must answer all four:

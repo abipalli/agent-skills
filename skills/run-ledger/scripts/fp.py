@@ -14,6 +14,8 @@ Repo config: .feature-pipeline.json at the root of the repo's main checkout.
                                      --from links the task or investigation run it came from;
                                      --stop-after STAGE refuses `step.started` for later stages
                                      (scope also allows spike)
+                                     --escalate (with --from REF) marks the run as escalated from direct work
+  fp.py route RUN_ID STATE [REASON]  change the run's route (pipelined|direct|backlogged|dropped), log route.changed
   fp.py list [STATUS[,STATUS]]       list jobs (pending,running,paused,completed,failed)
   fp.py show RUN_ID                  run, metadata, events, messages
   fp.py step RUN_ID STAGE EVENT [JSON]   append event, merge {stage, **JSON} into metadata
@@ -191,6 +193,22 @@ def job(run_id):
 
 
 STAGES = ["intake", "scope", "spike", "build", "review", "approve"]
+# Task routing (work-evaluation): a run is pipelined, or was moved off the pipeline. Allowed moves by current route.
+ROUTES = {"pipelined": {"direct", "backlogged", "dropped"},          # direct = demote
+          "direct": {"pipelined"},                                   # escalate
+          "backlogged": {"pipelined", "direct", "dropped"},          # re-triaged
+          "dropped": set()}
+
+
+def route(run_id, to, reason="", frm=None, **extra):
+    frm = frm or run_meta(run_id).get("route", "pipelined")
+    if to not in ROUTES.get(frm, set()):
+        sys.exit(f"run {run_id}: cannot route {frm} -> {to}")
+    api("POST", f"/v1/workflows/runs/{run_id}/events",
+        {"event_type": "route.changed", "step_name": run_meta(run_id).get("stage", "intake"),
+         "data": {"from": frm, "to": to, "reason": reason, **extra}})
+    api("PATCH", f"/v1/workflows/runs/{run_id}",
+        {"metadata": {"route": to} if use_file_store() else {**run_meta(run_id), "route": to}})
 
 
 def step(run_id, stage, event, data=None):
@@ -422,6 +440,20 @@ def selftest_file_store():
         assert [r["run_id"] for r in f("GET", "/v1/workflows/runs?workflow_type=t&status=completed")["runs"]] == [rid]
         assert f("GET", "/v1/workflows/runs?workflow_type=t&status=paused")["runs"] == []
         assert len(f("GET", "/v1/workflows/runs?limit=1")["runs"]) == 1
+        r2 = f("POST", "/v1/workflows/runs", {"workflow_type": "t", "metadata": {"stage": "scope", "route": "pipelined"}})["run_id"]
+        route(r2, "direct", "trivial")
+        route(r2, "pipelined", "touches CI")
+        route(r2, "direct")
+        for bad in ("backlogged", "bogus"):  # direct can only escalate
+            try:
+                route(r2, bad)
+                raise AssertionError(bad)
+            except SystemExit:
+                pass
+        ev = f("GET", f"/v1/workflows/runs/{r2}/events")["events"]
+        assert [(e["data"]["from"], e["data"]["to"]) for e in ev if e["event_type"] == "route.changed"] == \
+            [("pipelined", "direct"), ("direct", "pipelined"), ("pipelined", "direct")]
+        assert f("GET", f"/v1/workflows/runs/{r2}")["metadata"]["route"] == "direct"
     STORE_DIR = saved
 
 
@@ -432,6 +464,9 @@ def main(argv):
         if "--from" in args:
             i = args.index("--from")
             source, args = args[i + 1], args[:i] + args[i + 2:]
+        escalate = "--escalate" in args
+        args = [a for a in args if a != "--escalate"]
+        assert not escalate or source, "--escalate needs --from"
         stop = None
         if "--stop-after" in args:
             i = args.index("--stop-after")
@@ -441,18 +476,23 @@ def main(argv):
         request = args[2] if len(args) > 2 else title
         load_config(repo)
         meta = {"stage": "intake", "title": title, "repo": repo, **({"from": source} if source else {}),
-                **({"stop_after": stop} if stop else {})}
+                "route": "pipelined", **({"stop_after": stop} if stop else {})}
         run = api("POST", "/v1/workflows/runs", {"workflow_type": TYPE, "input": {"title": title, "request": request},
                                                   "metadata": meta})
         api("POST", f"/v1/workflows/runs/{run['run_id']}/events",
             {"event_type": "step.started", "step_name": "intake", "data": {}})
+        if escalate:  # the new run is where direct work from `source` continues
+            api("POST", f"/v1/workflows/runs/{run['run_id']}/events", {"event_type": "route.changed",
+                "step_name": "intake", "data": {"from": "direct", "to": "pipelined", "reason": "escalated", "source": source}})
         print(run["run_id"])
+    elif cmd == "route":
+        route(args[0], args[1], " ".join(args[2:]))
     elif cmd == "list":
         q = {"workflow_type": TYPE, "limit": 100, **({"status": args[0]} if args else {})}
         for r in api("GET", "/v1/workflows/runs?" + urllib.parse.urlencode(q))["runs"]:
             m = r.get("metadata") or {}
             m = json.loads(m) if isinstance(m, str) else m
-            print(f"{r['run_id']}\t{r['status']}\t{os.path.basename(m.get('repo', '?'))}\t{m.get('stage', '?')}\t{m.get('title', '')}")
+            print(f"{r['run_id']}\t{r['status']}\t{os.path.basename(m.get('repo', '?'))}\t{m.get('stage', '?')}\t{m.get('route', '-')}\t{m.get('title', '')}")
     elif cmd == "show":
         rid = args[0]
         print(json.dumps({"run": api("GET", f"/v1/workflows/runs/{rid}"),
