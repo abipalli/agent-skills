@@ -9,9 +9,11 @@ set, only runs those keys created count).
 
 Repo config: .feature-pipeline.json at the root of the repo's main checkout.
 
-  fp.py new REPO_DIR TITLE [REQUEST] [--from RUN_ID]
+  fp.py new REPO_DIR TITLE [REQUEST] [--from RUN_ID] [--stop-after STAGE]
                                      create a job for the repo containing REPO_DIR, print its run_id;
-                                     --from links the task or investigation run it came from
+                                     --from links the task or investigation run it came from;
+                                     --stop-after STAGE refuses `step.started` for later stages
+                                     (scope also allows spike)
   fp.py list [STATUS[,STATUS]]       list jobs (pending,running,paused,completed,failed)
   fp.py show RUN_ID                  run, metadata, events, messages
   fp.py step RUN_ID STAGE EVENT [JSON]   append event, merge {stage, **JSON} into metadata
@@ -188,8 +190,15 @@ def job(run_id):
     return meta, load_config(meta["repo"])
 
 
+STAGES = ["intake", "scope", "spike", "build", "review", "approve"]
+
+
 def step(run_id, stage, event, data=None):
     data = data or {}
+    stop = (api("GET", f"/v1/workflows/runs/{run_id}").get("metadata") or {}).get("stop_after")
+    if event == "step.started" and stop in STAGES and stage in STAGES and \
+            STAGES.index(stage) > max(STAGES.index(stop), STAGES.index("spike") * (stop == "scope")):
+        sys.exit(f"run {run_id} stops after {stop}: stage {stage} is not allowed; wait for a human")
     api("POST", f"/v1/workflows/runs/{run_id}/events", {"event_type": event, "step_name": stage, "data": data})
     patch = {**data, "stage": stage}
     # The file store merges metadata under its lock; LiteLLM replaces it, so send the whole object.
@@ -423,10 +432,16 @@ def main(argv):
         if "--from" in args:
             i = args.index("--from")
             source, args = args[i + 1], args[:i] + args[i + 2:]
+        stop = None
+        if "--stop-after" in args:
+            i = args.index("--stop-after")
+            stop, args = args[i + 1], args[:i] + args[i + 2:]
+            assert stop in STAGES, f"--stop-after must be one of {STAGES}"
         repo, title = repo_root(args[0]), args[1]
         request = args[2] if len(args) > 2 else title
         load_config(repo)
-        meta = {"stage": "intake", "title": title, "repo": repo, **({"from": source} if source else {})}
+        meta = {"stage": "intake", "title": title, "repo": repo, **({"from": source} if source else {}),
+                **({"stop_after": stop} if stop else {})}
         run = api("POST", "/v1/workflows/runs", {"workflow_type": TYPE, "input": {"title": title, "request": request},
                                                   "metadata": meta})
         api("POST", f"/v1/workflows/runs/{run['run_id']}/events",

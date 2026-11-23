@@ -12,7 +12,9 @@ Python's standard library only.
 
 ```sh
 FP=<this skill's directory>/scripts/fp.py
-$FP new <repo-dir> "<title>" "<request>" [--from RUN_ID]   # → RUN_ID; --from links a task or investigation
+$FP new <repo-dir> "<title>" "<request>" [--from RUN_ID] [--stop-after <stage>]
+                                           # → RUN_ID; --from links a task or investigation;
+                                           # --stop-after makes step.started refuse later stages
 $FP list [paused|running|completed|...]    # RUN_ID  status  repo  stage  title
 $FP show RUN_ID                            # run, metadata, events, messages
 $FP step RUN_ID <stage> <event> '<json>'   # append an event; merge the JSON into metadata
