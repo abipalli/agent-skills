@@ -26,6 +26,28 @@ Skills, agents and teams are flat directories named by slug. Nothing nests: a
 pipeline's stage skills live in `skills/` like any other skill, so other pipelines
 can reuse them.
 
+## Org context (stacking private specifics on public skills)
+
+Skills here stay generic. Organisation specifics (account names, repos, tracker site and project
+keys, chat channels, people, review calibration) live in a private **context pack** that the user
+installs at `~/.agents/context/`:
+
+```text
+~/.agents/context/org.md                 values for placeholders any skill may use
+~/.agents/context/skills/<slug>.md       an addendum read right after skills/<slug>/SKILL.md
+~/.agents/context/skills/<slug>/         material the addendum points to
+```
+
+An always-on rule in the user's agent setup tells the agent to read `org.md` before any skill and the
+skill's addendum right after its `SKILL.md`; the addendum adds to the skill and wins where they disagree.
+
+- Write placeholders a context pack can fill: `<OWNER>/<REPO>`, `<PROJ>-123`, "your tracker", or an
+  environment variable. Never inline the specific value.
+- When a skill needs organisation-specific behaviour (extra scrutiny for some repos, a house review
+  voice, calibration data), state the generic hook in the skill ("if the context pack has an addendum,
+  apply it") and put the specifics in the pack.
+- A context pack never lands in this repo, its history, commit messages or PRs.
+
 ## Skills
 
 ```yaml
