@@ -107,10 +107,8 @@ commit, so an upstream change arrives only as a reviewed submodule bump.
 | Pack | License | Recommended skills |
 | :--- | :--- | :--- |
 | [ponytail](https://github.com/DietrichGebert/ponytail) | MIT | `ponytail` (always-on minimal-code ruleset), `ponytail-review` (the review panel's over-engineering lane), `ponytail-debt` |
-| [caveman](https://github.com/JuliusBrussee/caveman) | Apache-2.0 | `caveman` (terse output), `caveman-commit`, `caveman-compress` |
-| [gh-stack](https://github.com/github/gh-stack) | MIT | `gh-stack` (stacked PRs) |
 
-Each pack ships more skills than these. Link only the ones you want, since every
+The pack ships more skills than these. Link only the ones you want, since every
 linked skill adds its description to your context.
 
 ## Install
