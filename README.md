@@ -68,12 +68,12 @@ team feature-delivery
 | [`run-ledger`](skills/run-ledger/SKILL.md) | inherits | run state, repo gates and the approval policy (`scripts/fp.py`) |
 | `stage-intake` … `stage-approve` | inherit | one skill per stage |
 
-- **State.** Each job is one [LiteLLM](https://github.com/BerriAI/litellm)
-  workflow run. The job survives the session, and any UI that reads those runs can
-  show it and resume it. You need a LiteLLM proxy with workflow runs (v1.81+);
-  see [`run-ledger`](skills/run-ledger/SKILL.md#prerequisites).
-- **Per-repo config.** A `.feature-pipeline.json` at the repo root sets the gates
-  (test, lint) and the approval policy. See
+- **State.** Each job is one run that survives the session: a local JSON file by
+  default, or a [LiteLLM](https://github.com/BerriAI/litellm) workflow run (v1.81+)
+  that any UI reading those runs can show and resume. See [`run-ledger`](skills/run-ledger/SKILL.md#prerequisites).
+- **Per-repo config.** Optional. A `.feature-pipeline.json` at the repo root sets the
+  gates (test, lint) and the approval policy; without one, defaults apply and a
+  person approves every PR. See
   [`run-ledger`](skills/run-ledger/SKILL.md#repo-config).
 - **Approval.** Code decides it, not the model. `fp approve` applies the repo's
   policy: diff size, sensitive paths, review severities, gates and scope risk.

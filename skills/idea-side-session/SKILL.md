@@ -28,7 +28,7 @@ $FP step RUN_ID intake step.completed '{"intake": {...}, "evaluation": {"value":
   "complexity": "", "context": "", "decision": "", "scored_on": ""}}'
 ```
 
-An idea with no repo yet (or a repo without `.feature-pipeline.json`) cannot open a run. Record it
+An idea with no repo yet cannot open a pipelined run. Record it
 as a plan doc (`docs/plans/<idea>.md`) or a Machina `work_item` with the same vector, and say so.
 
 ## 3. Side session and brief

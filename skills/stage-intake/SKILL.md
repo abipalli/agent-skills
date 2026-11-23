@@ -31,8 +31,8 @@ and why; don't guess its content.
   MCP server.
 
 Then find the target repo's local main checkout. If more than one checkout
-matches, list them and ask; do not guess. The repo must have
-`.feature-pipeline.json` (see `run-ledger`).
+matches, list them and ask; do not guess. Read its settings with `$FP config`
+(see `run-ledger`).
 
 ## Record
 
