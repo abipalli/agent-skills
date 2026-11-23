@@ -37,23 +37,16 @@ triage again. `start` runs this gate and opens the run. Say the route in one lin
 A direct task escalates to the pipeline when it turns out to need a PR, hits a sensitive path, or spreads
 past one file. The state machine, `stop_after`, escalate and demote are in `feature-pipeline`.
 
-## Decision
-
-1. **Drop** when value is low and nothing else depends on it.
-2. **Do now** when value is medium or high, context is yes, and risk and complexity fit what
-   is left of the current session.
-3. **Backlog** otherwise. Say what would change the call: the missing context, the decision
-   it waits on, or the risk to retire first.
-
 Context is the axis most often skipped. Work with full value but no context gets done badly; it
-belongs in the backlog with its missing context named.
+belongs in the backlog with its missing context named: say what would change the call (the missing
+context, the decision it waits on, or the risk to retire first).
 
 ## Output
 
 One line, then the evidence:
 
 ```
-Value high · Risk low · Complexity medium · Context partial → backlog (needs: app deep links)
+Value high · Risk low · Complexity medium · Context no → backlog (needs: app deep links)
 - Value: …
 - Risk: …
 - Complexity: …
@@ -66,7 +59,7 @@ Value high · Risk low · Complexity medium · Context partial → backlog (need
   (`{value, risk, complexity, context, decision, scored_on}`) via `run-ledger`, so paused runs
   are a scored backlog.
 - In a backlog or plan, as the four axes plus the decision and date.
-- In Machina, as the properties of a work item (`value`, `risk`, `complexity`, `context`,
+- In your tracker, as fields on the work item (`value`, `risk`, `complexity`, `context`,
   `decision`), so the same vector is queryable across projects.
 - On a run, a route change is a `route.changed` event (`fp.py route`).
 - Re-score when the context axis changes (a backlogged item goes back through triage); keep the earlier score so the change is visible.
