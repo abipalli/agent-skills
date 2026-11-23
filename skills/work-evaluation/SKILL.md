@@ -32,7 +32,8 @@ Triage every new task through these rules, in order; the first match wins. They 
    - it needs an independent review before it ships.
 4. **Direct** otherwise: lookups, local edits, ops commands, Q&A.
 
-If one question would settle the route, ask it (`clarify`), then triage again. Say the route in one line.
+If anything unknown would change the route, ask every question that could settle it (`clarify`), then
+triage again. `start` runs this gate and opens the run. Say the route in one line.
 A direct task escalates to the pipeline when it turns out to need a PR, hits a sensitive path, or spreads
 past one file. The state machine, `stop_after`, escalate and demote are in `feature-pipeline`.
 

@@ -12,7 +12,7 @@ Python's standard library only.
 
 ```sh
 FP=<this skill's directory>/scripts/fp.py
-$FP new <repo-dir> "<title>" "<request>" [--from RUN_ID] [--stop-after <stage>]
+$FP new <repo-dir> "<title>" "<request>" [--from RUN_ID] [--stop-after <stage>] [--route direct|backlogged|dropped]
                                            # → RUN_ID; --from links a task or investigation;
                                            # --stop-after makes step.started refuse later stages;
                                            # --escalate (needs --from) marks direct work moving onto the pipeline
@@ -100,7 +100,7 @@ Routing state lives in metadata and events, so it can be queried:
 
 - `metadata.route`: `pipelined` (set by `new`), `direct`, `backlogged` or `dropped`. `fp list` shows it.
 - `metadata.stop_after`: a stage id; `step.started` refuses any later stage (`scope` also allows `spike`).
-- `route.changed` event, data `{from, to, reason}`, written by `fp route`. With `new --escalate` it also
+- `route.changed` event, data `{from, to, reason}`, written by `fp route` and by `new` (from `triaged`). With `new --escalate` it also
   carries `source`, the `--from` reference. `fp route` refuses moves the state machine in
   `feature-pipeline` does not allow.
 

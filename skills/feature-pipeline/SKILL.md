@@ -75,8 +75,8 @@ stateDiagram-v2
     triaged --> backlogged: context = no
     triaged --> pipelined: PR on a shared repo, risk or complexity ≥ medium,<br/>unclear criteria, or needs independent review
     triaged --> direct: everything else
-    triaged --> clarify: one question needed
-    clarify --> triaged: answered
+    triaged --> clarify: questions needed
+    clarify --> triaged: all answered
     backlogged --> triaged: context axis changed
     direct --> pipelined: escalate (needs a PR, sensitive path, spreads past one file)
     pipelined --> direct: demote (scope verdict: trivial)
@@ -97,9 +97,11 @@ stateDiagram-v2
 - **`stop_after`:** `fp new ... --stop-after <stage>` (`scope`, `build`, `review` or `approve`). The
   conductor runs that stage, then stops and waits for the human; `fp step ... step.started`
   refuses a later one.
+- **Every task has a run** (opened by `start`): `fp new --route direct|backlogged|dropped` for the others.
 - **Escalate** (direct → pipelined): when direct work turns out to need a PR, hits a sensitive
   path, or spreads past one file, stop and run `$FP new <repo-dir> "<title>" "<what was done so
-  far, as the request>" --from <where the work started> --escalate`. The new run's intake is that work.
+  far, as the request>" --from <direct run> --escalate`, then `fp done` the direct run. The new run's
+  intake is that work.
 - **Demote** (pipelined → direct): when scope finds the task trivial, run `$FP route RUN_ID direct
   "<why>"`, do the work directly and `$FP done` the run.
 - **Backlogged:** `$FP route RUN_ID backlogged "<missing context>"`, then pause with `hook.waiting`. Re-score

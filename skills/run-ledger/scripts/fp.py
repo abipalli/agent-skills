@@ -9,11 +9,12 @@ set, only runs those keys created count).
 
 Repo config: .feature-pipeline.json at the root of the repo's main checkout.
 
-  fp.py new REPO_DIR TITLE [REQUEST] [--from RUN_ID] [--stop-after STAGE]
+  fp.py new REPO_DIR TITLE [REQUEST] [--from RUN_ID] [--stop-after STAGE] [--route STATE]
                                      create a job for the repo containing REPO_DIR, print its run_id;
                                      --from links the task or investigation run it came from;
                                      --stop-after STAGE refuses `step.started` for later stages
                                      (scope also allows spike)
+                                     --route STATE opens a direct, backlogged or dropped task (no repo config needed);
                                      --escalate (with --from REF) marks the run as escalated from direct work
   fp.py route RUN_ID STATE [REASON]  change the run's route (pipelined|direct|backlogged|dropped), log route.changed
   fp.py list [STATUS[,STATUS]]       list jobs (pending,running,paused,completed,failed)
@@ -472,18 +473,32 @@ def main(argv):
             i = args.index("--stop-after")
             stop, args = args[i + 1], args[:i] + args[i + 2:]
             assert stop in STAGES, f"--stop-after must be one of {STAGES}"
-        repo, title = repo_root(args[0]), args[1]
+        to = "pipelined"
+        if "--route" in args:
+            i = args.index("--route")
+            to, args = args[i + 1], args[:i] + args[i + 2:]
+            assert to in ROUTES and not (escalate and to != "pipelined"), f"--route must be one of {list(ROUTES)}"
+        title = args[1]
         request = args[2] if len(args) > 2 else title
-        load_config(repo)
+        if to == "pipelined":
+            repo = repo_root(args[0])
+            load_config(repo)
+        else:  # direct, backlogged and dropped tasks need no repo config; the repo is optional
+            try:
+                repo = repo_root(args[0])
+            except SystemExit:
+                repo = None
         meta = {"stage": "intake", "title": title, "repo": repo, **({"from": source} if source else {}),
-                "route": "pipelined", **({"stop_after": stop} if stop else {})}
+                "route": to, **({"stop_after": stop} if stop else {})}
         run = api("POST", "/v1/workflows/runs", {"workflow_type": TYPE, "input": {"title": title, "request": request},
                                                   "metadata": meta})
         api("POST", f"/v1/workflows/runs/{run['run_id']}/events",
             {"event_type": "step.started", "step_name": "intake", "data": {}})
-        if escalate:  # the new run is where direct work from `source` continues
-            api("POST", f"/v1/workflows/runs/{run['run_id']}/events", {"event_type": "route.changed",
-                "step_name": "intake", "data": {"from": "direct", "to": "pipelined", "reason": "escalated", "source": source}})
+        # Every task gets a run: log its first route. An escalated run continues direct work from `source`.
+        api("POST", f"/v1/workflows/runs/{run['run_id']}/events", {"event_type": "route.changed",
+            "step_name": "intake", "data": {"from": "direct" if escalate else "triaged", "to": to,
+                                            "reason": "escalated" if escalate else "triaged",
+                                            **({"source": source} if escalate else {})}})
         print(run["run_id"])
     elif cmd == "route":
         route(args[0], args[1], " ".join(args[2:]))
@@ -492,7 +507,7 @@ def main(argv):
         for r in api("GET", "/v1/workflows/runs?" + urllib.parse.urlencode(q))["runs"]:
             m = r.get("metadata") or {}
             m = json.loads(m) if isinstance(m, str) else m
-            print(f"{r['run_id']}\t{r['status']}\t{os.path.basename(m.get('repo', '?'))}\t{m.get('stage', '?')}\t{m.get('route', '-')}\t{m.get('title', '')}")
+            print(f"{r['run_id']}\t{r['status']}\t{os.path.basename(m.get('repo') or '-')}\t{m.get('stage', '?')}\t{m.get('route', '-')}\t{m.get('title', '')}")
     elif cmd == "show":
         rid = args[0]
         print(json.dumps({"run": api("GET", f"/v1/workflows/runs/{rid}"),
