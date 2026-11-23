@@ -42,12 +42,6 @@ marks a skill that other skills call: it runs at its caller's tier (see
 | [`merge`](skills/merge/SKILL.md) | inherits | approve and squash-merge a PR |
 | [`github-updates`](skills/github-updates/SKILL.md) | inherits | brief the PRs that need you across your repos |
 
-### Authoring
-
-| Skill | Tier | Use it to |
-| :--- | :--- | :--- |
-| [`skill-creator`](skills/skill-creator/SKILL.md) | opus / high | create, evaluate and tune skills (adapted from Anthropic's) |
-
 ### The feature pipeline
 
 [`feature-pipeline`](skills/feature-pipeline/SKILL.md) takes one work item through
@@ -165,7 +159,7 @@ Update it with `git submodule update --remote`.
 
    `--format` rewrites frontmatter into the portable style the validator requires.
 3. If you change a skill's behaviour, run its `evals/` with
-   [`skill-creator`](skills/skill-creator/SKILL.md).
+   Anthropic's [`skill-creator`](https://github.com/anthropics/skills/tree/main/skills/skill-creator).
 
 ## License
 
