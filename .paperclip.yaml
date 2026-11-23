@@ -63,7 +63,7 @@ agents:
       config:
         model: claude-opus-5-5
         effort: xhigh
-  chief-of-staff:
+  delegator:
     role: ceo
     runtime:
       heartbeat:
