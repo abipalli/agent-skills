@@ -43,7 +43,7 @@ Run the lanes in parallel. Each `reviewer` gets:
 | :--- | :--- |
 | `deep` | Run the `deep-code-review` skill on this diff. Also judge whether it solves the brief. |
 | `ponytail` | Run the `ponytail-review` skill: what in this diff need not exist? Skip this lane if the skill isn't installed, and say so. |
-| `conventions` | Check code quality and repo conventions: read the repo's CLAUDE.md, AGENTS.md or CONTRIBUTING and the nearby code, and flag drift. For a Rust diff, also run `rust-review`. |
+| `conventions` | Check code quality and repo conventions: read the repo's CLAUDE.md, AGENTS.md or CONTRIBUTING and the nearby code, and flag drift. Read every new comment and name next to its neighbours: a comment that repeats a variable's value, restates the code, argues for the change or breaks the file's comment style, or a name that differs from its siblings, is `medium`. For a Rust diff, also run `rust-review`. |
 
 Each lane returns its findings as JSON:
 

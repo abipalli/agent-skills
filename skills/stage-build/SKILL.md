@@ -56,7 +56,10 @@ For each task whose dependencies are done, dispatch a `builder` with:
 - the absolute worktree path;
 - the task contract;
 - the success check;
-- the repo's `notes` from `.feature-pipeline.json`.
+- the repo's `notes` from `.feature-pipeline.json`;
+- the comment rule: match the file's comment style and sibling names; a comment says only what the
+  code can't (no copied config values, no restating the code, no rationale, which goes in the PR body).
+  Paste in `~/.agents/rules/code-comments.md` instead when it exists.
 
 Send independent tasks at the same time. Pass the contract, not your history: the
 builder starts with a fresh context on purpose. Use a stronger model only for a
