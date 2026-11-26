@@ -1,0 +1,22 @@
+suite: voice
+version: 1
+description: "Glass voice rules on questions that need no tool: at most 40 words, plain text, no markdown or lists."
+reps: 3
+sampling: {temperature: 0, seed: 42}
+system: {fixture: prompts.v1.json, key: glass_system}
+tools: {fixture: prompts.v1.json, key: glass_tools}
+max_tokens: 1000
+rubric:
+  - {check: no_tool}
+  - {check: nonempty}
+  - {check: max_words, value: 40}
+  - {check: no_markdown}
+cases:
+  - {id: sky, prompt: "Why is the sky blue?"}
+  - {id: vaccines, prompt: "How do vaccines work?"}
+  - {id: mortgage, prompt: "Explain how a mortgage works."}
+  - {id: virus-bacteria, prompt: "What's the difference between a virus and a bacterium?"}
+  - {id: sleep-tips, prompt: "Give me three tips for better sleep."}
+  - {id: vinaigrette, prompt: "How do I make a basic vinaigrette?"}
+  - {id: compare-langs, prompt: "Compare Python, Go and Rust for a beginner."}
+  - {id: history, prompt: "Tell me about the fall of the Roman Empire."}

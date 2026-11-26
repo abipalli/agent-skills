@@ -1,0 +1,62 @@
+suite: tools
+version: 1
+description: "First-turn tool choice on the Glass gateway's built-in tools: right tool, valid arguments, no invented tools, no tool when none is needed."
+reps: 3
+sampling: {temperature: 0, seed: 42}
+system: {fixture: prompts.v1.json, key: glass_system}
+tools: {fixture: prompts.v1.json, key: glass_tools}
+max_tokens: 1000
+# expect.tool: a name, a list of acceptable names, or null for "answer without a tool".
+# expect.args: argument name -> regex the value must match (stringified).
+cases:
+  - id: weather-city
+    prompt: "What's the weather like in Tokyo right now?"
+    expect: {tool: get_weather, args: {location: "(?i)tokyo"}}
+  - id: weather-here
+    prompt: "Do I need an umbrella today?"
+    expect: {tool: get_weather}
+  - id: search-price
+    prompt: "What's the price of bitcoin right now?"
+    expect: {tool: web_search, args: {query: "(?i)bitcoin|btc"}}
+  - id: search-score
+    prompt: "Who won the Lakers game last night?"
+    expect: {tool: web_search, args: {query: "(?i)lakers"}}
+  - id: research
+    prompt: "Research the best mirrorless cameras under a thousand dollars and send me a report."
+    expect: {tool: research, args: {question: "(?i)camera"}}
+  - id: notify
+    prompt: "Send a reminder to my phone to buy milk on the way home."
+    expect: {tool: send_notification, args: {message: "(?i)milk"}}
+  - id: new-session
+    prompt: "Let's start a new conversation."
+    expect: {tool: new_session}
+  - id: list-sessions
+    prompt: "Show me my past conversations."
+    expect: {tool: list_sessions}
+  - id: resume-session
+    prompt: "Go back to conversation number three."
+    expect: {tool: resume_session, args: {session_id: "^3$"}}
+  - id: photo
+    prompt: "What am I looking at?"
+    expect: {tool: capture_photo}
+  - id: video
+    prompt: "Watch this for five seconds and tell me what happens."
+    expect: {tool: capture_video, args: {seconds: "^5$"}}
+  - id: none-math
+    prompt: "What's seventeen times twenty-three?"
+    expect: {tool: null, reply: "391"}
+  - id: none-fact
+    prompt: "Tell me a fun fact about octopuses."
+    expect: {tool: null}
+  - id: none-thanks
+    prompt: "Thanks, that's all for now."
+    expect: {tool: null}
+  - id: trap-lights
+    prompt: "Turn on the living room lights."
+    expect: {tool: null}
+  - id: trap-email
+    prompt: "Email my landlord that the rent will be two days late."
+    expect: {tool: [null, send_notification]}
+  - id: trap-booking
+    prompt: "Book me a table for two at an Italian place at seven."
+    expect: {tool: [null, web_search]}

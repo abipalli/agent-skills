@@ -1,0 +1,56 @@
+suite: json
+version: 1
+description: "Structured output as production callers use it: the PII reframer (lenient parse, 800-token cap) and the Glass card (strict parse, json_object, 300-token cap)."
+reps: 3
+sampling: {temperature: 0, seed: 42}
+# parse: strict = the whole reply is JSON; lenient = the first {...} in it (pii_sanitize.parse_json_obj).
+# Both are scored on every case; `parse` names the one the production caller applies.
+groups:
+  reframe:
+    system: {fixture: prompts.v1.json, key: reframe_system}
+    max_tokens: 800
+    parse: lenient
+    shape: {reframe: bool, question: str}
+  card:
+    system: {fixture: prompts.v1.json, key: card_system}
+    max_tokens: 300
+    response_format: {type: json_object}
+    parse: strict
+    shape: {kind: str}
+cases:
+  - id: reframe-faucet
+    group: reframe
+    prompt: "How do I fix a leaking kitchen faucet at PII_ADDRESS_3f2a? It drips from the base of the spout."
+    expect: {reframe: true, question: "(?i)faucet|tap", question_not: "PII_"}
+  - id: reframe-billing
+    group: reframe
+    prompt: "My card PII_ACCOUNT_NUMBER_0b12 was charged twice by the same shop. What are my rights under the Fair Credit Billing Act?"
+    expect: {reframe: true, question: "(?i)fair credit billing", question_not: "PII_"}
+  - id: reframe-birthday
+    group: reframe
+    prompt: "Write a birthday message to PII_PERSON_a91c, my sister, mentioning our trip to PII_LOCATION_77de."
+    expect: {reframe: false}
+  - id: reframe-email
+    group: reframe
+    prompt: "Draft an email to PII_PERSON_51e0 moving our meeting to Thursday afternoon."
+    expect: {reframe: false}
+  - id: reframe-age
+    group: reframe
+    prompt: "PII_PERSON_c3d4 was born on PII_DATE_OF_BIRTH_9a8b. How old is he now?"
+    expect: {reframe: false}
+  - id: card-stat
+    group: card
+    prompt: "Question: How tall is Mount Everest?\nAnswer: Mount Everest is 8,849 meters tall, about 29,032 feet."
+    expect: {kind: stat, value: "8,?849", caption_max: 40, topic_max: 40}
+  - id: card-bars
+    group: card
+    prompt: "Question: What are the populations of Tokyo, Delhi and Shanghai?\nAnswer: Tokyo has about 37.4 million people, Delhi 33.8 million and Shanghai 29.9 million."
+    expect: {kind: bars, items: 3, label_max: 16, caption_max: 40, topic_max: 40}
+  - id: card-list
+    group: card
+    prompt: "Question: How do I reset my router?\nAnswer: Unplug it for 30 seconds, plug it back in, then wait two minutes for the lights to settle."
+    expect: {kind: list, items_min: 2, items_max: 3, label_max: 28, topic_max: 40}
+  - id: card-none
+    group: card
+    prompt: "Question: Tell me a joke.\nAnswer: Why did the scarecrow win an award? Because he was outstanding in his field."
+    expect: {kind: none}

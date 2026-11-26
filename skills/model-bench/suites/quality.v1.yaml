@@ -1,0 +1,46 @@
+suite: quality
+version: 1
+description: "Spot checks scored by a fixed rubric of deterministic checks; no judge model."
+reps: 3
+sampling: {temperature: 0, seed: 42}
+max_tokens: 2000
+cases:
+  - id: time-math
+    prompt: "A train leaves at 9:40 and the trip takes 2 hours 35 minutes. When does it arrive? Answer with the time only."
+    rubric:
+      - {check: regex, pattern: "\\b12:15\\b"}
+      - {check: max_words, value: 6}
+  - id: ordering
+    prompt: "Alice is older than Bob. Bob is older than Carol. Dan is older than Alice. Who is the youngest? Answer with one name."
+    rubric:
+      - {check: regex, pattern: "(?i)\\bcarol\\b"}
+      - {check: regex_absent, pattern: "(?i)\\b(alice|bob|dan)\\b"}
+  - id: date-extract
+    prompt: "Extract the invoice date from this text and give it as YYYY-MM-DD only: 'The invoice dated 3 March 2025 is due within 30 days.'"
+    rubric:
+      - {check: regex, pattern: "^\\s*2025-03-03\\s*$"}
+  - id: summary-facts
+    prompt: "Summarise in at most 30 words: 'The quarterly review moved from Wednesday to Thursday at 3 pm because the projector in room 2A is broken. It will now be held in room 4B. Bring the updated budget sheet; the old one had a formula error in the travel column.'"
+    rubric:
+      - {check: regex, pattern: "(?i)thursday"}
+      - {check: regex, pattern: "(?i)3 ?pm|15:00"}
+      - {check: regex, pattern: "(?i)4B"}
+      - {check: regex, pattern: "(?i)budget"}
+      - {check: regex_absent, pattern: "(?i)friday|monday|tuesday"}
+      - {check: max_words, value: 30}
+  - id: format-list
+    prompt: "Name the three primary colours of paint, lowercase, separated by commas, and nothing else."
+    rubric:
+      - {check: regex, pattern: "^\\s*(red|yellow|blue)\\s*,\\s*(red|yellow|blue)\\s*,\\s*(red|yellow|blue)\\.?\\s*$"}
+  - id: unknowable
+    prompt: "What did I eat for breakfast this morning?"
+    rubric:
+      - {check: regex, pattern: "(?i)(don'?t|do not|can'?t|cannot|no way to|not able|unable|wouldn'?t) (know|tell|see|access|have)"}
+  - id: palindrome-code
+    prompt: "Write a Python function is_palindrome(s) that ignores case and any non-alphanumeric characters. Reply with only the code in one ```python block."
+    rubric:
+      - {check: python_tests, entry: is_palindrome, tests: [["A man, a plan, a canal: Panama", true], ["race a car", false], ["", true], ["No 'x' in Nixon", true], ["ab", false]]}
+  - id: unit-convert
+    prompt: "Convert 72 degrees Fahrenheit to Celsius, rounded to one decimal place. Answer with the number only."
+    rubric:
+      - {check: regex, pattern: "^\\s*22\\.2\\s*(°?C)?\\s*$"}

@@ -1,0 +1,38 @@
+suite: systems
+version: 1
+description: "Latency and throughput: time to first token, decode and prefill rates, long-context recall."
+reps: 3
+sampling: {temperature: 0, seed: 42}
+# Every request is streamed. A per-request nonce leads each prompt so a prefix cache never serves a repeat.
+cases:
+  - id: ping
+    prompt: "Reply with the single word: ready"
+    max_tokens: 256
+    rubric:
+      - {check: regex, pattern: "(?i)\\bready\\b"}
+
+  - id: decode
+    prompt: "Write about 300 words on how lighthouses were kept lit before electricity. Plain prose, no headings."
+    max_tokens: 1200
+    rubric:
+      - {check: min_words, value: 150}
+
+  - id: prefill-2k
+    filler_tokens: 2000
+    needle: "The shed key is hidden under the blue flowerpot by the north gate."
+    needle_at: 0.35
+    prompt: "Where is the shed key hidden? Answer in one short sentence."
+    max_tokens: 1024
+    rubric:
+      - {check: regex, pattern: "(?i)blue flower ?pot"}
+      - {check: regex, pattern: "(?i)north gate"}
+
+  - id: prefill-16k
+    filler_tokens: 16000
+    needle: "The backup generator code is 4-7-1-9, written inside the pantry door."
+    needle_at: 0.6
+    prompt: "What is the backup generator code, and where is it written? Answer in one short sentence."
+    max_tokens: 1024
+    rubric:
+      - {check: regex, pattern: "4-?7-?1-?9"}
+      - {check: regex, pattern: "(?i)pantry"}
