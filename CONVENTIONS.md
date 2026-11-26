@@ -97,7 +97,7 @@ the same:
   in `skills/` and `vendor/*/skills/`, applies the tier rule to both, and reports
   anything else as external.
 - **No absolute paths, hostnames or personal details** anywhere in a skill. Refer to
-  files next to the skill by relative path (`scripts/fp.py`), and to user
+  files next to the skill by relative path (`scripts/feature-pipeline.py`), and to user
   configuration through environment variables.
 
 ### Tiers

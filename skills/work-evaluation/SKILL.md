@@ -61,5 +61,5 @@ Value high · Risk low · Complexity medium · Context no → backlog (needs: ap
 - In a backlog or plan, as the four axes plus the decision and date.
 - In your tracker, as fields on the work item (`value`, `risk`, `complexity`, `context`,
   `decision`), so the same vector is queryable across projects.
-- On a run, a route change is a `route.changed` event (`fp.py route`).
+- On a run, a route change is a `route.changed` event (`feature-pipeline.py route`).
 - Re-score when the context axis changes (a backlogged item goes back through triage); keep the earlier score so the change is visible.

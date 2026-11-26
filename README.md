@@ -59,7 +59,7 @@ team feature-delivery
 | Skill | Tier | Role |
 | :--- | :--- | :--- |
 | [`feature-pipeline`](skills/feature-pipeline/SKILL.md) | sonnet / medium | the conductor: plans, routes, records |
-| [`run-ledger`](skills/run-ledger/SKILL.md) | inherits | run state, repo gates and the approval policy (`scripts/fp.py`) |
+| [`run-ledger`](skills/run-ledger/SKILL.md) | inherits | run state, repo gates and the approval policy (`scripts/feature-pipeline.py`) |
 | `stage-intake` … `stage-approve` | inherit | one skill per stage |
 
 - **State.** Each job is one run that survives the session: a local JSON file by

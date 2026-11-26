@@ -1,17 +1,17 @@
 ---
 name: run-ledger
-description: "Durable pipeline state on LiteLLM workflow runs (scripts/fp.py): record stages, run repo gates, apply the auto-approve policy. Loaded by pipeline skills; use directly for \"pipeline status\", \"show run <id>\"."
+description: "Durable pipeline state on LiteLLM workflow runs (scripts/feature-pipeline.py): record stages, run repo gates, apply the auto-approve policy. Loaded by pipeline skills; use directly for \"pipeline status\", \"show run <id>\"."
 metadata:
   calls: []
 ---
 
 # run-ledger
 
-`scripts/fp.py`, next to this file, is the only way to read or write a run. It uses
+`scripts/feature-pipeline.py`, next to this file, is the only way to read or write a run. It uses
 Python's standard library only.
 
 ```sh
-FP=<this skill's directory>/scripts/fp.py
+FP=<this skill's directory>/scripts/feature-pipeline.py
 $FP new <repo-dir> "<title>" "<request>" [--from RUN_ID] [--stop-after <stage>] [--route direct|backlogged|dropped]
                                            # → RUN_ID; --from links a task or investigation;
                                            # --stop-after makes step.started refuse later stages;
@@ -61,7 +61,7 @@ reach the ledger.
 
 ```json
 {"hooks": {"PreToolUse": [{"matcher": "Bash",
-  "hooks": [{"type": "command", "command": "<this skill's directory>/scripts/fp.py guard"}]}]}}
+  "hooks": [{"type": "command", "command": "<this skill's directory>/scripts/feature-pipeline.py guard"}]}]}}
 ```
 
 It stops mistakes and a conductor that drifts from the rules. It can't stop an
@@ -138,11 +138,11 @@ $FP step RUN_ID scope step.completed '{"scope": {
 
 ## Repo config
 
-Optional. Without it, `fp.py` uses defaults: base = the remote's default branch (`origin/HEAD`), `lanes_dir`
+Optional. Without it, `feature-pipeline.py` uses defaults: base = the remote's default branch (`origin/HEAD`), `lanes_dir`
 `../<repo>-lanes`, `branch_prefix` `fp/`, no gates, and every approval goes to a
 person. `$FP config <repo-dir>` prints the effective values; stages read them there.
 
-`.feature-pipeline.json` lives at the root of the repo's **main checkout**. `fp.py`
+`.feature-pipeline.json` lives at the root of the repo's **main checkout**. `feature-pipeline.py`
 always reads it from there, never from the branch being approved, so a change
 cannot loosen its own rules. A diff that touches it always goes to a human.
 

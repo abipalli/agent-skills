@@ -9,27 +9,27 @@ set, only runs those keys created count).
 
 Repo config: .feature-pipeline.json at the root of the repo's main checkout; optional (see load_config).
 
-  fp.py new REPO_DIR TITLE [REQUEST] [--from RUN_ID] [--stop-after STAGE] [--route STATE]
+  feature-pipeline.py new REPO_DIR TITLE [REQUEST] [--from RUN_ID] [--stop-after STAGE] [--route STATE]
                                      create a job for the repo containing REPO_DIR, print its run_id;
                                      --from links the task or investigation run it came from;
                                      --stop-after STAGE refuses `step.started` for later stages
                                      (scope also allows spike)
                                      --route STATE opens a direct, backlogged or dropped task;
                                      --escalate (with --from REF) marks the run as escalated from direct work
-  fp.py route RUN_ID STATE [REASON]  change the run's route (pipelined|direct|backlogged|dropped), log route.changed
-  fp.py list [STATUS[,STATUS]]       list jobs (pending,running,paused,completed,failed)
-  fp.py show RUN_ID                  run, metadata, events, messages
-  fp.py config REPO_DIR              the repo's effective config (defaults when it has no file)
-  fp.py step RUN_ID STAGE EVENT [JSON]   append event, merge {stage, **JSON} into metadata
-  fp.py note RUN_ID ROLE TEXT        append a message (review comments, questions, answers)
-  fp.py gates RUN_ID                 run the repo's gate commands in the job worktree, record results
-  fp.py approve RUN_ID               apply the repo policy to the job worktree, record approve.decided
+  feature-pipeline.py route RUN_ID STATE [REASON]  change the run's route (pipelined|direct|backlogged|dropped), log route.changed
+  feature-pipeline.py list [STATUS[,STATUS]]       list jobs (pending,running,paused,completed,failed)
+  feature-pipeline.py show RUN_ID                  run, metadata, events, messages
+  feature-pipeline.py config REPO_DIR              the repo's effective config (defaults when it has no file)
+  feature-pipeline.py step RUN_ID STAGE EVENT [JSON]   append event, merge {stage, **JSON} into metadata
+  feature-pipeline.py note RUN_ID ROLE TEXT        append a message (review comments, questions, answers)
+  feature-pipeline.py gates RUN_ID                 run the repo's gate commands in the job worktree, record results
+  feature-pipeline.py approve RUN_ID               apply the repo policy to the job worktree, record approve.decided
                                      (feature-delivery runs only: no other kind can merge)
-  fp.py done RUN_ID [JSON]           mark completed with output
-  fp.py guard                        Claude Code PreToolUse hook: blocks `gh pr merge` unless the PR's
+  feature-pipeline.py done RUN_ID [JSON]           mark completed with output
+  feature-pipeline.py guard                        Claude Code PreToolUse hook: blocks `gh pr merge` unless the PR's
                                      feature-delivery run was auto-approved with auto_merge on, or a
                                      person approved it (metadata.operator_decision)
-  fp.py selftest [REPO_DIR...]       policy self-check + validate those repos' configs (no network)
+  feature-pipeline.py selftest [REPO_DIR...]       policy self-check + validate those repos' configs (no network)
 """
 import contextlib
 import datetime
